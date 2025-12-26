@@ -30,7 +30,7 @@ Place pieces, clear rows and columns, trigger massive chain reactions, and push 
 ## 🚀 Live Demo
 
 👉 **Play here:**  
-https://USERNAME.github.io/bloxplode-beta/
+https://mody-sahariar1.github.io/bloxplode-beta/
 
 _(Replace USERNAME with your GitHub username)_
 
