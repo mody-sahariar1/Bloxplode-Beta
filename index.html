@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>BLOXPLODE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,900&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-column" id="game-view">
+        <div class="top-bar">
+            <div class="bomb-anchor" id="bomb-target">
+                <div class="fuse-string"></div>
+                <div class="spark-group">
+                    <div class="spark-core"></div>
+                    <div class="spark-flared"></div>
+                </div>
+                <div class="bomb-nozzle"></div>
+                <div class="score-bomb">
+                    <div class="bomb-shine"></div>
+                    <div class="digital-display">
+                        <span id="score">0</span>
+                    </div>
+                </div>
+            </div>
+            <span id="best-score" style="display:none">0</span>
+            <button id="restart" title="Reset Game">↻</button>
+        </div>
+        
+        <div id="grid-wrapper"><div id="grid"></div></div>
+        <div id="tray">
+            <div class="tray-slot" id="slot-0"></div>
+            <div class="tray-slot" id="slot-1"></div>
+            <div class="tray-slot" id="slot-2"></div>
+        </div>
+    </div>
+    <div id="game-over-overlay" class="hidden">
+        <div class="game-over-box"><h1>BOOMED!</h1><button id="restart-overlay-btn">TRY AGAIN</button></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
