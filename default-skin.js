@@ -10,12 +10,12 @@ function triggerEternalHaptic(ms) {
     }
 }
 
+// ... [Existing triggerFloatingScore function remains unchanged] ...
 function triggerFloatingScore(pointValue, sourceCell) {
     const floatingEl = document.createElement('div');
     floatingEl.className = 'floating-score';
     floatingEl.textContent = "+" + pointValue;
 
-    // Floating Score attaches to BODY, so we MUST use Screen Coordinates (getBoundingClientRect)
     const startRect = sourceCell.getBoundingClientRect();
     const startX = startRect.left + startRect.width / 2;
     const startY = startRect.top + startRect.height / 2;
@@ -40,7 +40,6 @@ function triggerFloatingScore(pointValue, sourceCell) {
     });
 
     setTimeout(() => {
-        // Safe check for globals in case script.js changed
         if (typeof confirmedScore !== 'undefined') {
             confirmedScore += pointValue;
             if (typeof bestScore !== 'undefined' && confirmedScore > bestScore) {
@@ -70,6 +69,66 @@ function resetCellVisuals(idx) {
     cell.style.removeProperty('--preview-color');
 }
 
+// --- NEW HELPER: AUDIO PROFILE CALCULATOR ---
+// Determines the "Base Pitch" and any "Layered Sound" based on strict rules.
+function getComboAudioProfile(c) {
+    // Default Profile (Standard Hit)
+    let profile = {
+        basePitch: 1.00,
+        layer: null,       // 'winning_swoosh', 'victory_chime', 'epic_victory'
+        layerPitch: 1.00,
+        layerVol: 1.00,
+        layerDelay: 0
+    };
+
+    // --- STEP 1: CALCULATE BASE PITCH (instant_win.wav) ---
+    // Rule: Never exceed 1.20
+    if (c === 1) profile.basePitch = 1.00;
+    else if (c === 2) profile.basePitch = 1.04;
+    else if (c === 3) profile.basePitch = 1.06;
+    else if (c === 4) profile.basePitch = 1.08;
+    else if (c === 5) profile.basePitch = 1.10;
+    else if (c >= 6 && c <= 7) profile.basePitch = 1.12;
+    else if (c === 8) profile.basePitch = 1.14;
+    else if (c === 9) profile.basePitch = 1.15;
+    else if (c === 10) profile.basePitch = 1.16;
+    else if (c >= 11 && c <= 12) profile.basePitch = 1.17;
+    else if (c === 13) profile.basePitch = 1.18;
+    else if (c === 14) profile.basePitch = 1.19;
+    else if (c === 15) profile.basePitch = 1.19;
+    else if (c >= 16) profile.basePitch = 1.20; // LOCKED MAX
+
+    // --- STEP 2: DETERMINE LAYERS (The "Premium" Feel) ---
+    
+    // A. SWOOSHES (Transitions)
+    if (c === 5 || c === 15) {
+        profile.layer = 'winning_swoosh';
+        profile.layerPitch = 1.00;
+        profile.layerVol = 0.6; // Quiet accent
+        profile.layerDelay = 50; // Slight offset
+    }
+
+    // B. CHIMES (Milestones)
+    else if (c === 10 || c === 13 || c === 18) {
+        profile.layer = 'victory_chime';
+        profile.layerPitch = (c === 18) ? 1.03 : 1.01; // Slight variance
+        profile.layerVol = 0.9;
+        profile.layerDelay = 100; // Let the impact hit first
+    }
+
+    // C. GODLIKE STATE (20+) - RARE PRESTIGE
+    // Rule: Every 5th combo starting at 20 (20, 25, 30...)
+    else if (c >= 20 && c % 5 === 0) {
+        profile.layer = 'epic_victory';
+        profile.layerPitch = 1.01; // Almost no pitch shift
+        profile.layerVol = 0.65;   // Don't overpower the hit
+        profile.layerDelay = 120;  // Distinct separation
+    }
+
+    return profile;
+}
+
+
 // --- VISUAL PIPE LISTENERS (WRAPPED IN BOSS) ---
 
 // 1. Piece Placement Visuals (HIGH PRIORITY)
@@ -87,46 +146,34 @@ VisualPipe.on("piece_placed", ({ indices, color }) => {
     });
 });
 
-// 2. Clear Feedback (COMBO SYSTEM & HAPTICS)
+// 2. Clear Feedback (UPDATED FOR NEW AUDIO SYSTEM + VOICES)
 VisualPipe.on("clear_feedback", ({ combo }) => {
-    // A. Haptics (T=0ms)
+    
+    // A. Haptics & Shake (Standard)
     let hapticDuration = 50;
-    if (combo >= 2 && combo <= 4) hapticDuration = 65;
-    else if (combo >= 5) hapticDuration = 80;
+    if (combo >= 5) hapticDuration = 80;
     triggerEternalHaptic(hapticDuration);
 
-    // B. Grid Shake (T=0ms)
     const gridWrapper = document.getElementById('grid-wrapper');
     let shakeClass = 'shake-1';
-    let shakeTime = 100;
-
-    if (combo >= 2 && combo <= 4) {
-        shakeClass = 'shake-2';
-        shakeTime = 120;
-    } else if (combo >= 5) {
-        shakeClass = 'shake-3';
-        shakeTime = 150;
-    }
+    if (combo >= 5) shakeClass = 'shake-2';
+    if (combo >= 10) shakeClass = 'shake-3';
 
     gridWrapper.classList.remove('shake-1', 'shake-2', 'shake-3');
-    void gridWrapper.offsetWidth; // Force reflow
+    void gridWrapper.offsetWidth; 
     gridWrapper.classList.add(shakeClass);
-    
-    setTimeout(() => {
-        gridWrapper.classList.remove(shakeClass);
-    }, shakeTime);
+    setTimeout(() => gridWrapper.classList.remove(shakeClass), 200);
 
-    // C. Configuration Data
-    const thresholds = [2, 5, 8, 10, 13, 15, 18, 20];
+    // B. VISUAL DATA MAP (RESTORED AUDIO KEYS)
     const dataMap = {
-        2:  { text: "NICE!", color: "#00d2d3" },
-        5:  { text: "SWEET!", color: "#ff9ff3" },
-        8:  { text: "GREAT!", color: "#54a0ff" },
-        10: { text: "AMAZING!", color: "#feca57" },
-        13: { text: "UNREAL!", color: "#5f27cd" },
-        15: { text: "INSANE!", color: "#ff6b6b" },
-        18: { text: "LEGENDARY!", color: "#f1c40f" },
-        20: { text: "GODLIKE!", color: "#00ffcc" }
+        2:  { text: "NICE!", color: "#00d2d3", audio: 'combo_2' },
+        5:  { text: "SWEET!", color: "#ff9ff3", audio: 'combo_5' },
+        8:  { text: "GREAT!", color: "#54a0ff", audio: 'combo_8' },
+        10: { text: "AMAZING!", color: "#feca57", audio: 'combo_10' },
+        13: { text: "UNREAL!", color: "#5f27cd", audio: 'combo_13' },
+        15: { text: "INSANE!", color: "#ff6b6b", audio: 'combo_15' },
+        18: { text: "LEGENDARY!", color: "#f1c40f", audio: 'combo_18' },
+        20: { text: "GODLIKE!", color: "#00ffcc", audio: 'combo_20' }
     };
 
     let activeData = null;
@@ -134,28 +181,29 @@ VisualPipe.on("clear_feedback", ({ combo }) => {
         if (combo <= 20) {
             if (dataMap[combo]) activeData = dataMap[combo];
             else {
+                // Gap fill color (Keep color, but no text/audio)
                 let lower = 2;
-                thresholds.forEach(t => { if (combo >= t) lower = t; });
-                activeData = { text: null, color: dataMap[lower].color }; 
+                [2,5,8,10,13,15,18,20].forEach(t => { if(combo >= t) lower = t; });
+                activeData = { text: null, color: dataMap[lower].color, audio: null }; 
             }
         } else {
-            const cycleIndex = (combo - 20) % thresholds.length;
-            const cycleKey = thresholds[cycleIndex];
-            activeData = dataMap[cycleKey];
+            // Loop for > 20
+            const loopTiers = [15, 18, 20];
+            const loopIndex = (combo - 21) % loopTiers.length;
+            activeData = dataMap[loopTiers[loopIndex]];
         }
     }
-
     const displayColor = activeData ? activeData.color : "#ffffff";
 
-    // D. Combo Number Display (T=0ms)
+    // C. COMBO POPUP (Visuals)
     const comboContainer = document.createElement('div');
     comboContainer.className = 'combo-popup';
     comboContainer.style.setProperty('--combo-color', displayColor);
-
+    
     const label = document.createElement('div');
     label.className = 'combo-label';
     label.textContent = "COMBO";
-
+    
     const value = document.createElement('div');
     value.className = 'combo-value';
     value.textContent = "x" + combo;
@@ -163,29 +211,46 @@ VisualPipe.on("clear_feedback", ({ combo }) => {
     comboContainer.appendChild(label);
     comboContainer.appendChild(value);
     gridWrapper.appendChild(comboContainer);
+    setTimeout(() => comboContainer.remove(), 980);
 
-    setTimeout(() => {
-        comboContainer.remove();
-    }, 980);
+    // D. MUSIC EXECUTION (The Premium Layer - T=0ms)
+    if (window.SoundSystem && window.SoundSystem.play) {
+        const audioProfile = getComboAudioProfile(combo);
+        
+        // 1. Play Base (Instant Win)
+        window.SoundSystem.play('instant_win', audioProfile.basePitch, 1.0);
 
-    // E. Reinforcement Banner (T=700ms)
+        // 2. Play Layer (Swoosh/Chime/Epic)
+        if (audioProfile.layer) {
+            setTimeout(() => {
+                window.SoundSystem.play(
+                    audioProfile.layer, 
+                    audioProfile.layerPitch, 
+                    audioProfile.layerVol
+                );
+            }, audioProfile.layerDelay);
+        }
+    }
+
+    // E. TEXT BANNER & VOICE (Visuals + Spoken Word)
     if (activeData && activeData.text) {
         setTimeout(() => {
+            // 1. PLAY VOICE (If exists) - "NICE!", "SWEET!"
+            if (activeData.audio && window.SoundSystem) {
+                // We play the voice at standard pitch so it doesn't sound chipmunky
+                window.SoundSystem.play(activeData.audio, 1.0, 1.0);
+            }
+
+            // 2. SHOW VISUALS
             const banner = document.createElement('div');
             banner.className = 'reinforcement-banner';
             banner.style.setProperty('--combo-color', activeData.color);
-
             const bText = document.createElement('div');
             bText.className = 'banner-text';
             bText.textContent = activeData.text;
-
             banner.appendChild(bText);
             gridWrapper.appendChild(banner);
-
-            setTimeout(() => {
-                banner.remove();
-            }, 850); 
-
+            setTimeout(() => banner.remove(), 850); 
         }, 700);
     }
 });
@@ -203,7 +268,6 @@ VisualPipe.on("clear_anim", ({ rToClear, cToClear, combo }) => {
     Boss.run({ priority: "high", duration: 50 }, () => {
         
         const gridWrapper = document.getElementById('grid-wrapper');
-        // REMOVED: getBoundingClientRect() math that breaks on mobile
         
         // 1. DETECT MULTI-CLEAR
         const isMulti = (rToClear.length + cToClear.length) > 1;
@@ -217,19 +281,15 @@ VisualPipe.on("clear_anim", ({ rToClear, cToClear, combo }) => {
             });
         }
 
-        // 2. HELPER: Spawn FX using GRID MATH (Scale Independent)
+        // 2. HELPER: Spawn FX
         const spawnFX = (idx, color, delayMs, isIntersect) => {
-            // MATH FIX: Calculate position based on Grid Index, not screen pixels
             const r = Math.floor(idx / 8);
             const c = idx % 8;
             
-            // 48px is the Grid Cell Size (44px) + Gap (4px)
-            // +12px is the Grid Wrapper Padding
             const relLeft = (c * 48) + 12;
             const relTop  = (r * 48) + 12;
 
             setTimeout(() => {
-                // A. SPAWN STUNT DOUBLE
                 const stunt = document.createElement('div');
                 stunt.className = 'fx-dying-block anim-implode';
                 stunt.style.left = relLeft + 'px';
@@ -248,7 +308,6 @@ VisualPipe.on("clear_anim", ({ rToClear, cToClear, combo }) => {
                 gridWrapper.appendChild(stunt);
                 setTimeout(() => stunt.remove(), 300);
 
-                // B. SPAWN SPARKS
                 let sparkCount = combo > 5 ? 6 : 3;
                 if (isMulti) sparkCount *= 1.5;
                 if (isIntersect) sparkCount = 12;
@@ -256,8 +315,6 @@ VisualPipe.on("clear_anim", ({ rToClear, cToClear, combo }) => {
                 for (let i = 0; i < sparkCount; i++) {
                     const spark = document.createElement('div');
                     spark.className = 'fx-spark';
-                    
-                    // Center the spark in the cell (+22px is half of 44px)
                     spark.style.left = (relLeft + 22) + 'px';
                     spark.style.top = (relTop + 22) + 'px';
                     spark.style.setProperty('--color', isIntersect ? '#fff' : color);
@@ -284,14 +341,11 @@ VisualPipe.on("clear_anim", ({ rToClear, cToClear, combo }) => {
             beam.style.left = '12px'; 
             beam.style.top = (r * 48 + 12 + 22) + 'px'; 
             beam.style.width = '384px'; 
-            
             const firstCell = cells[r * 8]; 
             const beamColor = firstCell.style.getPropertyValue('--block-color') || '#fff';
             beam.style.setProperty('--color', beamColor);
-            
             gridWrapper.appendChild(beam);
             setTimeout(() => beam.remove(), 350);
-
             for (let c = 0; c < 8; c++) {
                 const idx = r * 8 + c;
                 const cell = cells[idx];
@@ -308,14 +362,11 @@ VisualPipe.on("clear_anim", ({ rToClear, cToClear, combo }) => {
             beam.style.left = (c * 48 + 12 + 22) + 'px';
             beam.style.top = '12px';
             beam.style.height = '384px';
-            
             const firstCell = cells[c]; 
             const beamColor = firstCell.style.getPropertyValue('--block-color') || '#fff';
             beam.style.setProperty('--color', beamColor);
-            
             gridWrapper.appendChild(beam);
             setTimeout(() => beam.remove(), 350);
-
             for (let r = 0; r < 8; r++) {
                 const idx = r * 8 + c;
                 if (rToClear.length === 0 || !intersectionIndices.has(idx)) {

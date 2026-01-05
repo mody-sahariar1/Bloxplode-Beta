@@ -1,31 +1,161 @@
+// ============================================
+// AUDIO SYSTEM (HYBRID: PREMIUM SFX + VOICES + BGM)
+// ============================================
+const SoundSystem = {
+    ctx: null,
+    buffers: {},
+    isMuted: false,
+    heartbeatTimer: null,
+    bgmNode: null,   
+    bgmGain: null,   
+
+    init() {
+        if (!this.ctx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.ctx = new AudioContext();
+            this.loadSounds();
+        } else if (this.ctx.state === 'suspended') {
+            this.ctx.resume().then(() => {
+                this.playMusic('bgm');
+            });
+        }
+    },
+
+    async loadSounds() {
+        const fileNames = {
+            // --- CORE UI ---
+            'grab': 'sounds/piece_grab.wav',
+            'place': 'sounds/piece_place.wav',
+            'new_best': 'sounds/best_score.wav',
+            'heartbeat': 'sounds/heartbeat.wav',
+            'game_over': 'sounds/score_banner.wav', 
+            
+            // --- BACKGROUND MUSIC ---
+            'bgm': 'sounds/background.wav',
+            
+            // --- NEW: POST-GAME BEST SCORE CELEBRATION ---
+            'gameover_best': 'sounds/gameover_bestscore.wav', 
+            
+            // --- PREMIUM MUSIC SFX ---
+            'instant_win': 'sounds/instant_win.wav',       
+            'winning_swoosh': 'sounds/winning_swoosh.wav', 
+            'victory_chime': 'sounds/victory_chime.wav',   
+            'epic_victory': 'sounds/epic_victory.wav',
+
+            // --- COMBO VOICES ---
+            'combo_2': 'sounds/nice.wav',
+            'combo_5': 'sounds/sweet.wav',
+            'combo_8': 'sounds/great.wav',
+            'combo_10': 'sounds/amazing.wav',
+            'combo_13': 'sounds/unreal.wav',
+            'combo_15': 'sounds/insane.wav',
+            'combo_18': 'sounds/legendary.wav',
+            'combo_20': 'sounds/godlike.wav'
+        };
+
+        for (const [name, url] of Object.entries(fileNames)) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+                this.buffers[name] = audioBuffer;
+                console.log(`✅ Loaded: ${name}`);
+            } catch (error) {
+                console.error(`❌ FAILED loading ${url}`);
+            }
+        }
+
+        if (this.ctx) {
+            this.playMusic('bgm');
+        }
+    },
+
+    // --- SFX PLAYER ---
+    play(name, pitch = 1.0, volume = 1.0) {
+        if (this.isMuted || !this.ctx || !this.buffers[name]) return;
+
+        const source = this.ctx.createBufferSource();
+        source.buffer = this.buffers[name];
+        
+        if (pitch !== 1.0) source.playbackRate.value = pitch;
+
+        const gainNode = this.ctx.createGain();
+        gainNode.gain.value = volume;
+
+        source.connect(gainNode);
+        gainNode.connect(this.ctx.destination);
+        
+        source.start(0);
+    },
+
+    // --- MUSIC PLAYER ---
+    playMusic(name) {
+        if (this.bgmNode) return;
+        if (this.isMuted || !this.ctx || !this.buffers[name]) return;
+
+        const source = this.ctx.createBufferSource();
+        source.buffer = this.buffers[name];
+        source.loop = true; 
+
+        const gainNode = this.ctx.createGain();
+        gainNode.gain.value = 0.18; // 18% Volume
+
+        source.connect(gainNode);
+        gainNode.connect(this.ctx.destination);
+        
+        source.start(0);
+
+        this.bgmNode = source;
+        this.bgmGain = gainNode;
+    },
+
+    startHeartbeat() {
+        if (this.heartbeatTimer) return;
+        if (this.buffers['heartbeat']) {
+            this.play('heartbeat', 0.9, 0.8);
+        }
+        this.heartbeatTimer = setTimeout(() => {
+            this.heartbeatTimer = null; 
+            this.startHeartbeat(); 
+        }, 1500);
+    },
+
+    stopHeartbeat() {
+        if (this.heartbeatTimer) {
+            clearTimeout(this.heartbeatTimer);
+            this.heartbeatTimer = null;
+        }
+    }
+};
+
+window.SoundSystem = SoundSystem;
+window.addEventListener('pointerdown', () => SoundSystem.init(), { once: true });
+
+
+// ============================================
+// GAME LOGIC
+// ============================================
+
 const gridSize = 8;
 const grid = document.getElementById("grid");
 const tray = document.getElementById("tray");
 const scoreEl = document.getElementById("score");
 const bestScoreEl = document.getElementById("best-score");
-const overlay = document.getElementById("game-over-overlay");
 
 let cells = [], gridState = Array(64).fill(0), combo = 0;
 let score = 0; 
 let confirmedScore = 0; 
 let displayedScore = 0; 
 
-// GAME STATE
 let isGameLocked = false;
-
-// --- BEST SCORE LOGIC (RESET APPLIED via New Key) ---
-// Key remains "bloxplode_best_v2" to keep your fresh start
 let bestScore = parseInt(localStorage.getItem("bloxplode_best_v2")) || 0;
 let initialSessionBest = bestScore; 
 let hasBrokenRecord = false; 
-
 let nonClearCount = 0; 
 
 bestScoreEl.textContent = bestScore;
-
-// --- CONFIGURATION ---
-// UPDATED: Set to 150px as requested
-const TOUCH_LIFT_AMOUNT = 150;
+const TOUCH_LIFT_AMOUNT = 100;
 
 const SHAPES = {
     DOT: { data: [[0,0]], color: '#FF7F7F' },
@@ -79,6 +209,7 @@ function init() {
     resizeGame();
     window.addEventListener('resize', resizeGame);
     window.addEventListener('orientationchange', resizeGame);
+    SoundSystem.stopHeartbeat(); 
 
     grid.innerHTML = ""; cells = []; gridState.fill(0);
     for (let i = 0; i < 64; i++) {
@@ -94,17 +225,14 @@ function init() {
     scoreEl.textContent = "0"; 
     combo = 0; nonClearCount = 0;
     
-    // VISUAL RESET
     document.body.classList.remove('combo-active');
     document.body.removeAttribute('data-grace');
     
-    // GAME OVER RESET
     isGameLocked = false;
     document.getElementById("no-space-message").classList.add("hidden");
     document.getElementById("tray").style.opacity = "1";
     document.getElementById('grid-wrapper').classList.remove('state-dimmed');
     
-    // RESET NEW BEST ANIMATION
     hasBrokenRecord = false;
     const nbOverlay = document.getElementById('new-best-overlay');
     nbOverlay.classList.add('hidden');
@@ -122,16 +250,13 @@ function updateUI() {
         displayedScore += Math.max(1, step);
         scoreEl.textContent = displayedScore;
         
-        // --- NEW LOGIC: LIVE BEST SCORE "TOWING" ---
         let currentDisplayBest = parseInt(bestScoreEl.textContent) || 0;
         
         if (displayedScore > currentDisplayBest) {
             bestScoreEl.textContent = displayedScore;
-            // Also save specifically to the new key
             localStorage.setItem("bloxplode_best_v2", displayedScore);
         }
         
-        // --- NEW BEST ANIMATION TRIGGER ---
         if (displayedScore > initialSessionBest && !hasBrokenRecord) {
             triggerNewBestAnimation();
         }
@@ -151,21 +276,18 @@ function updateUI() {
     }
 }
 
-// --- NEW BEST ANIMATION TRIGGER ---
 function triggerNewBestAnimation() {
+    SoundSystem.play('new_best');
     hasBrokenRecord = true;
     const nbOverlay = document.getElementById('new-best-overlay');
-    nbOverlay.classList.remove('hidden'); // SHOW IT
+    nbOverlay.classList.remove('hidden'); 
     
-    // SYNCED TIMELINE (2.0s to match CSS):
     setTimeout(() => {
-        nbOverlay.classList.add('fade-out-best'); // Safety fade
-        
+        nbOverlay.classList.add('fade-out-best'); 
         setTimeout(() => {
             nbOverlay.classList.add('hidden');
             nbOverlay.classList.remove('fade-out-best');
         }, 250); 
-        
     }, 2000); 
 }
 
@@ -188,6 +310,7 @@ function clearLines(lastRow, lastCol, placedColor) {
         if (combo >= 2) {
             document.body.classList.add('combo-active');
             document.body.setAttribute('data-grace', '0'); 
+            SoundSystem.startHeartbeat();
             const scoreBox = document.querySelector('.score-box:first-child');
             if (scoreBox) {
                 scoreBox.classList.remove('pulse-trigger');
@@ -217,12 +340,15 @@ function clearLines(lastRow, lastCol, placedColor) {
 
     } else {
         nonClearCount++;
-        if (combo >= 2) { document.body.setAttribute('data-grace', nonClearCount); }
+        if (combo >= 2) { 
+            document.body.setAttribute('data-grace', nonClearCount);
+        }
         if (nonClearCount >= 3) {
             combo = 0;
             nonClearCount = 0;
             document.body.classList.remove('combo-active');
             document.body.removeAttribute('data-grace');
+            SoundSystem.stopHeartbeat();
         }
     }
 }
@@ -314,18 +440,23 @@ function canPlace(shapeData, row, col) {
 }
 
 let activeDrag = null;
+
 window.addEventListener('pointerdown', e => {
     if (isGameLocked) return; 
+    
     const slot = e.target.closest('.tray-slot');
     if (!slot || activeDrag) return;
     const piece = slot.querySelector('.piece');
     if (!piece) return;
+
     const shapeKey = piece.dataset.shape;
     const shapeData = SHAPES[shapeKey].data;
+    
     const clone = piece.cloneNode(true);
     clone.classList.add("dragging");
     clone.style.transform = `scale(${window.gameScale})`;
     clone.style.transformOrigin = "center"; 
+    
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     shapeData.forEach(([x, y]) => {
         minX = Math.min(minX, x); maxX = Math.max(maxX, x);
@@ -334,38 +465,79 @@ window.addEventListener('pointerdown', e => {
     const sz = 44, gap = 4;
     const w = (maxX - minX + 1) * sz + (maxX - minX) * gap;
     const h = (maxY - minY + 1) * sz + (maxY - minY) * gap;
-    clone.style.width = w + "px"; clone.style.height = h + "px";
+    
+    clone.style.width = w + "px"; 
+    clone.style.height = h + "px";
+    
     clone.querySelectorAll('.block').forEach((b, i) => {
         const [x, y] = shapeData[i];
         b.style.left = (x - minX) * (sz + gap) + "px";
         b.style.top = (y - minY) * (sz + gap) + "px";
     });
+
     const isTouch = (e.pointerType === 'touch');
     const lift = isTouch ? TOUCH_LIFT_AMOUNT : 0;
-    clone.style.left = (e.clientX - w / 2) + "px";
-    clone.style.top = (e.clientY - h / 2 - lift) + "px";
+    
+    SoundSystem.play('grab');
+    
+    const startLeft = e.clientX - w / 2;
+    const startTop = e.clientY - h / 2 - lift;
+
+    clone.style.left = startLeft + "px";
+    clone.style.top = startTop + "px";
+    
     document.body.appendChild(clone);
     piece.style.visibility = "hidden";
     slot.setPointerCapture(e.pointerId);
+    
     activeDrag = { 
-        id: e.pointerId, source: piece, slot: slot, clone: clone, 
-        offX: w / 2, offY: h / 2, lift: lift, shape: SHAPES[shapeKey], color: SHAPES[shapeKey].color,
-        lastRow: null, lastCol: null
+        id: e.pointerId, 
+        source: piece, 
+        slot: slot, 
+        clone: clone,
+        isTouch: isTouch,
+        startX: e.clientX,
+        startY: e.clientY,
+        cloneStartX: startLeft,
+        cloneStartY: startTop,
+        shape: SHAPES[shapeKey], 
+        color: SHAPES[shapeKey].color,
+        lastRow: null, 
+        lastCol: null
     };
 });
 
 window.addEventListener('pointermove', e => {
     if (!activeDrag || activeDrag.id !== e.pointerId) return;
-    const visualLeft = e.clientX - activeDrag.offX;
-    const visualTop = e.clientY - activeDrag.offY - activeDrag.lift;
+
+    const deltaX = e.clientX - activeDrag.startX;
+    const deltaY = e.clientY - activeDrag.startY;
+
+    let factorX = 1;
+    let factorY = 1;
+
+    if (activeDrag.isTouch) {
+        factorX = 1.2;
+        factorY = (deltaY < 0) ? 1.5 : 1.2; 
+    }
+
+    const moveX = deltaX * factorX;
+    const moveY = deltaY * factorY;
+
+    const visualLeft = activeDrag.cloneStartX + moveX;
+    const visualTop = activeDrag.cloneStartY + moveY;
+
     activeDrag.clone.style.left = visualLeft + "px";
     activeDrag.clone.style.top = visualTop + "px";
+
     const gRect = grid.getBoundingClientRect();
     const col = Math.round((visualLeft - gRect.left) / (48 * window.gameScale));
     const row = Math.round((visualTop - gRect.top) / (48 * window.gameScale));
+
     if (activeDrag.lastRow === row && activeDrag.lastCol === col) return;
     activeDrag.lastRow = row;
     activeDrag.lastCol = col;
+
     cells.forEach(c => {
         c.classList.remove('ghost', 'ghost-clear');
         if (!c.classList.contains('occupied') && !c.classList.contains('clear-resolve')) {
@@ -373,12 +545,15 @@ window.addEventListener('pointermove', e => {
         }
         c.style.removeProperty('--preview-color'); 
     });
+
     if (canPlace(activeDrag.shape.data, row, col)) {
         let temp = [...gridState];
         activeDrag.shape.data.forEach(([dx, dy]) => { temp[(row + dy) * 8 + (col + dx)] = 1; });
         let clearingIndices = new Set();
+        
         for (let i = 0; i < 8; i++) { if (temp.slice(i * 8, (i + 1) * 8).every(v => v)) { for(let c=0; c<8; c++) clearingIndices.add(i * 8 + c); } }
         for (let i = 0; i < 8; i++) { let colFull = true; for (let r = 0; r < 8; r++) if (!temp[r * 8 + i]) colFull = false; if (colFull) for(let r=0; r<8; r++) clearingIndices.add(r * 8 + i); }
+        
         if (clearingIndices.size > 0) {
             clearingIndices.forEach(idx => {
                 cells[idx].classList.add('ghost-clear');
@@ -396,18 +571,36 @@ window.addEventListener('pointermove', e => {
 
 window.addEventListener('pointerup', e => {
     if (!activeDrag || activeDrag.id !== e.pointerId) return;
+
     cells.forEach(c => {
         c.classList.remove('ghost', 'ghost-clear');
         if (!c.classList.contains('occupied')) { c.style.removeProperty('--block-color'); }
         c.style.removeProperty('--preview-color');
     });
+
     activeDrag.slot.releasePointerCapture(e.pointerId);
-    const visualLeft = e.clientX - activeDrag.offX;
-    const visualTop = e.clientY - activeDrag.offY - activeDrag.lift;
+
+    const deltaX = e.clientX - activeDrag.startX;
+    const deltaY = e.clientY - activeDrag.startY;
+    
+    let factorX = 1;
+    let factorY = 1;
+    if (activeDrag.isTouch) {
+        factorX = 1.2;
+        factorY = (deltaY < 0) ? 1.5 : 1.2; 
+    }
+
+    const visualLeft = activeDrag.cloneStartX + (deltaX * factorX);
+    const visualTop = activeDrag.cloneStartY + (deltaY * factorY);
+
     const gRect = grid.getBoundingClientRect();
     const col = Math.round((visualLeft - gRect.left) / (48 * window.gameScale));
     const row = Math.round((visualTop - gRect.top) / (48 * window.gameScale));
+
     if (canPlace(activeDrag.shape.data, row, col)) {
+        
+        SoundSystem.play('place'); 
+        
         score += 5; confirmedScore += 5; updateUI();
         const placedColor = activeDrag.color;
         const placementIndices = [];
@@ -425,7 +618,10 @@ window.addEventListener('pointerup', e => {
                 runGameOverSequence();
             }
         });
-    } else { activeDrag.source.style.visibility = "visible"; }
+    } else { 
+        activeDrag.source.style.visibility = "visible"; 
+    }
+    
     activeDrag.clone.remove();
     activeDrag = null;
 });
@@ -445,7 +641,6 @@ function cancelDrag() {
 window.addEventListener('pointercancel', cancelDrag);
 window.addEventListener('blur', cancelDrag);
 
-// --- FIXED: LONG PRESS (Context Menu) DOES NOT CANCEL DRAG NOW ---
 window.addEventListener('contextmenu', e => { e.preventDefault(); });
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) cancelDrag(); });
@@ -462,47 +657,33 @@ function checkGameOver() {
     return true; 
 }
 
-// --- NEW CONFETTI LOGIC (50% FASTER) ---
 function fireConfetti() {
     const container = document.getElementById('confetti-container');
-    container.innerHTML = ''; // Clear previous
+    container.innerHTML = ''; 
     const colors = ['#FFD700', '#FF007A', '#00E5FF', '#00FF7F', '#FFFFFF'];
     
-    // Spawn 50 particles
     for(let i=0; i<50; i++) {
         const conf = document.createElement('div');
         conf.className = 'confetti-piece';
-        
-        // Random Color
         conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        
-        // Random Start Position (Bottom Corners)
         const side = Math.random() > 0.5 ? 'left' : 'right';
         const startX = side === 'left' ? Math.random() * 20 : 80 + Math.random() * 20;
         conf.style.left = startX + '%';
         conf.style.top = '100%';
-        
-        // Physics Vars
         const tx = (Math.random() - 0.5) * 200; 
         const ty = -600 - Math.random() * 400;  
         const rot = Math.random() * 720;        
-        
         conf.style.setProperty('--tx', `${tx}px`);
         conf.style.setProperty('--ty', `${ty}px`);
         conf.style.setProperty('--rot', `${rot}deg`);
-        
         conf.style.width = (8 + Math.random() * 6) + 'px';
         conf.style.height = (8 + Math.random() * 6) + 'px';
-        
-        // SPEED CHANGE: Duration reduced to 1.0 - 1.5s (50% faster)
         conf.style.animation = `confetti-fall ${1.0 + Math.random() * 0.5}s cubic-bezier(0.25, 1, 0.5, 1) forwards`;
         conf.style.animationDelay = (0.6 + Math.random() * 0.3) + 's'; 
-        
         container.appendChild(conf);
     }
 }
 
-// --- UPDATED GAME OVER SEQUENCE ---
 function runGameOverSequence() {
     isGameLocked = true; 
     const gridWrapper = document.getElementById('grid-wrapper');
@@ -512,7 +693,6 @@ function runGameOverSequence() {
     trayEl.style.opacity = "0"; 
     msgEl.classList.remove("hidden");
     
-    // 1. FILL ANIMATION (Grid Bricking Up)
     setTimeout(() => {
         const colorPalette = Object.values(SHAPES).map(s => s.color);
         cells.forEach((cell, index) => {
@@ -529,72 +709,58 @@ function runGameOverSequence() {
         });
     }, 350); 
     
-    // 2. DETERMINE WHICH OVERLAY TO SHOW (800ms trigger)
     setTimeout(() => {
-        // HIDE TOP BAR
         document.querySelector('.top-bar').classList.add('fade-out');
-        
-        // CHECK RECORD (Current Score > Session Start Best)
         if (score > initialSessionBest) {
-            
-            // --- NEW RECORD SEQUENCE ---
             const nrOverlay = document.getElementById("new-record-overlay");
             const nrScoreDisplay = document.getElementById("nr-score-val");
             const nrBtn = document.getElementById("nr-restart-btn");
             
-            nrOverlay.classList.remove("hidden"); // Triggers CSS Fade In (0.5s delay)
-            
-            fireConfetti(); // Triggers Confetti
-            
-            // Count Up Animation
+            // --- DELAYED SOUND (Syncs with CSS 0.55s Animation) ---
+            setTimeout(() => {
+                SoundSystem.play('gameover_best');
+            }, 550);
+
+            nrOverlay.classList.remove("hidden"); 
+            fireConfetti(); 
             nrScoreDisplay.textContent = "0";
             nrBtn.classList.remove('reveal');
-            
-            // Delay counting until text slides in (~1.2s total delay)
             setTimeout(() => {
                 animateValue(nrScoreDisplay, 0, score, 1500, nrBtn);
             }, 1200);
-            
         } else {
-            
-            // --- STANDARD GAME OVER SEQUENCE ---
             const goOverlay = document.getElementById("game-over-overlay");
             const goScoreDisplay = document.getElementById("go-score-val");
             const goBestDisplay = document.getElementById("go-best-val");
             const goBtn = document.getElementById("restart-overlay-btn");
             
+            // --- DELAYED SOUND (Syncs with CSS 0.55s Animation) ---
+            setTimeout(() => {
+                SoundSystem.play('game_over'); 
+            }, 550);
+
             goOverlay.classList.remove("hidden");
             
-            // Static Best Score
             goBestDisplay.textContent = bestScore;
-            
-            // Count Up Main Score
             goScoreDisplay.textContent = "0";
             goBtn.classList.remove('reveal');
-            
             setTimeout(() => {
                 animateValue(goScoreDisplay, 0, score, 1200, goBtn);
-            }, 300); // Standard delay
+            }, 300); 
         }
-        
     }, 800);
 }
 
-// Helper to handle counting for both overlays
 function animateValue(obj, start, end, duration, btnToReveal) {
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!start) start = 0;
         if (!startTimestamp) startTimestamp = timestamp;
         const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-        
         obj.textContent = Math.floor(progress * (end - start) + start);
-        
         if (progress < 1) {
             window.requestAnimationFrame(step);
         } else {
-            // Reveal Button when done
             if(btnToReveal) btnToReveal.classList.add('reveal');
         }
     };
@@ -603,13 +769,14 @@ function animateValue(obj, start, end, duration, btnToReveal) {
 
 function fullReset() { 
     score = 0; confirmedScore = 0; displayedScore = 0; combo = 0; 
+    SoundSystem.stopHeartbeat();
+    
     document.body.classList.remove('combo-active'); 
     document.body.removeAttribute('data-grace');
     
-    // HIDE BOTH OVERLAYS
     document.getElementById("game-over-overlay").classList.add("hidden"); 
     document.getElementById("new-record-overlay").classList.add("hidden");
-    document.getElementById("confetti-container").innerHTML = ''; // Clean confetti
+    document.getElementById("confetti-container").innerHTML = ''; 
     
     document.querySelector('.top-bar').classList.remove('fade-out');
 
@@ -618,7 +785,6 @@ function fullReset() {
     document.getElementById("tray").style.opacity = "1";
     document.getElementById('grid-wrapper').classList.remove('state-dimmed');
     
-    // Reset buttons
     document.getElementById("restart-overlay-btn").classList.remove('reveal');
     document.getElementById("nr-restart-btn").classList.remove('reveal');
     
@@ -632,9 +798,7 @@ function fullReset() {
         cell.style.removeProperty('--block-color');
     });
 
-    // Update Session Best for next run
     initialSessionBest = bestScore; 
-
     init(); 
 }
 document.getElementById("restart-overlay-btn").onclick = fullReset;
