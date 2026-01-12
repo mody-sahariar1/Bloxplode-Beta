@@ -1,317 +1,931 @@
 /* --- 1. CORE LAYOUT & RESET --- */
-@import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,400;0,600;0,700;1,900&family=Nunito:wght@700;800;900&display=swap');
 
 * { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
 
-:root {
-    /* --- VIBRANT ROYAL BLUE THEME --- */
-    --bg-friendly-top: #566CD5; 
-    --bg-friendly-bot: #3E50A4; 
-    
-    /* --- DARK ARENA COLORS --- */
-    --bg-grid-center: #1A1D24; 
-    --bg-grid-edge:   #111318; 
-    
-    --bg-panel: #1A1D24;        
-    --bg-cell:  #262A35;        
-    --text-main: #E2E8F0;       
-    --text-muted: #8FA3BF; 
-    
-    /* --- TRAY BAYS --- */
-    --bg-tray: transparent; 
-    
-    /* Radius Standards */
-    --rad-grid: 12px;
-    --rad-block: 6px;
-    --rad-cell: 4px;
-
-    /* DYNAMIC HEXAGON STATE */
-    --hex-opacity: 0;        
-    --hex-start: #2980b9;    
-    --hex-end: #3498db;      
-}
-
-/* Apply background gradient to HTML to ensure uniformity */
-html {
+/* GLOBAL BACKGROUND */
+html, body {
+    width: 100%;
     height: 100%;
-    background: linear-gradient(180deg, var(--bg-friendly-top) 0%, var(--bg-friendly-bot) 100%);
-    background-attachment: fixed; 
+    overflow: hidden;
+    touch-action: none; 
+    overscroll-behavior: none;
+    margin: 0;
+    background: linear-gradient(180deg, #566CD5 0%, #3E50A4 100%);
 }
 
 body { 
-    background: transparent;
-    color: var(--text-main); 
-    font-family: 'Nunito', sans-serif; 
+    color: #e8eaed; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     text-align: center; 
-    margin: 0; 
     display: flex; 
     justify-content: center; 
-    min-height: 100vh; 
-    overflow: hidden; 
-    padding-top: 60px;
-    overscroll-behavior: none;
+    padding-top: 40px;
 }
 
 .game-column { 
     width: 404px; 
-    min-height: 800px; 
     display: flex; 
     flex-direction: column; 
     align-items: center;
     transform-origin: top center;
     transition: transform 0.1s linear; 
-    position: relative;
+    touch-action: none;
 }
 .hidden { display: none !important; }
 
-/* =====================================================
-   HEADER RESTRUCTURING (ABSOLUTE HUD)
-   ===================================================== */
-.top-bar { 
-    width: 100%; 
-    height: 100px; 
-    position: relative; 
-    margin-bottom: 20px; 
-    transition: opacity 0.2s; 
-}
+/* =========================================================
+   PISTON & FLUID PROGRESS SYSTEM
+   ========================================================= */
 
-/* Hide Top Bar when Game Over is active */
-.top-bar.fade-out {
-    opacity: 0;
-}
-
-/* 1. MAIN SCORE (CENTER, FLOATING) */
-.score-box:first-child {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-    min-width: auto;
-    
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    
-    overflow: visible; 
+/* FLEX CONTAINER LAYOUT */
+#progress-system {
+    width: 100%;
+    padding: 0 4px; 
+    margin-bottom: 24px;
+    position: relative;
     z-index: 10;
     
-    transition: transform 0.1s;
+    display: flex;        
+    align-items: center; 
+    
+    /* CRITICAL: Allow this container to be elevated above dim later */
+    transition: z-index 0s; 
 }
 
-/* IMPACT POP EFFECT */
-.score-box:first-child.pulse-trigger {
-    animation: impact-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+/* 1. THE ROAD (Tunnel) */
+#progress-tunnel {
+    flex: 1; 
+    height: 42px; 
+    background: #080a10; 
+    border-radius: 21px; 
+    border: 2px solid rgba(255,255,255,0.08); 
+    box-shadow: 
+        inset 0 4px 8px rgba(0,0,0,0.8),
+        inset 0 -2px 2px rgba(255,255,255,0.03);
+    position: relative;
+    overflow: visible; 
+    
+    /* STACKING FIX: Auto allows children to pierce through */
+    z-index: auto; 
+    
+    /* DEFAULT COLOR (ZONE A - Neon Mint) */
+    --zone-color: #00FFC6;
+    transition: --zone-color 0.3s ease;
 }
 
-@keyframes impact-pop {
-    0% { transform: translate(-50%, -50%) scale(1); }
-    50% { transform: translate(-50%, -50%) scale(1.3); } 
-    100% { transform: translate(-50%, -50%) scale(1); }
-}
+/* ZONE STATE COLORS */
+#progress-tunnel.zone-a { --zone-color: #00FFC6; } /* Mint */
+#progress-tunnel.zone-b { --zone-color: #A6FF00; } /* Lime */
+#progress-tunnel.zone-c { --zone-color: #FF8A00; } /* Orange */
 
-.score-box:first-child .label { display: none; }
-
-/* FONT: Nunito (76px) */
-#score { 
-    font-family: 'Nunito', sans-serif;
-    font-size: 76px; 
+/* FLOATING SCORE (VISUALS) */
+.floating-score {
+    position: fixed;
+    left: var(--start-x);
+    top: var(--start-y);
+    font-family: 'Nunito', sans-serif; 
     font-weight: 900; 
-    color: #ffffff;
-    letter-spacing: -2px;
-    line-height: 1;
-    z-index: 2;
-    text-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    font-variant-numeric: tabular-nums;
+    font-size: 34px;  
+    color: #FFFFFF;
+    text-shadow: 0px 2px 4px rgba(0,0,0,0.5);
+    z-index: 9999;
+    pointer-events: none;
+    transform: translate(-50%, -50%); 
+    will-change: transform;
 }
 
-/* 2. BEST SCORE (TOP LEFT - LIFTED HIGHER) */
-.score-box:last-child {
+.score-animate {
+    animation: score-fly 1000ms linear forwards;
+}
+
+@keyframes score-fly {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 1;
+    }
+    10% {
+        transform: translate(-50%, calc(-50% - 40px)) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.0);
+        opacity: 0;
+    }
+}
+
+/* LAYER 2: DYNAMIC FLUID FILL (DEPTH PASS) */
+#progress-trace {
     position: absolute;
-    top: -25px; 
     left: 0; 
+    top: 0;
+    bottom: 0;
     
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-    min-width: auto;
+    /* STACKING FIX: Low priority */
+    z-index: 1; 
     
-    display: flex;
-    flex-direction: row; 
-    align-items: center;
-    gap: 6px;
+    height: 100%; 
+    
+    background-color: var(--zone-color);
+    background-image: linear-gradient(to bottom, transparent 60%, rgba(255, 255, 255, 0.12) 100%);
+    
+    clip-path: inset(0 -50px 0 0 round 19px 0 0 19px);
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    
+    transition: 
+        width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+        background-color 0.3s ease;
 }
 
-.score-box:last-child .label { font-size: 0; } 
-
-.score-box:last-child .label::before {
-    content: '👑'; 
-    font-size: 24px; 
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
-}
-
-#best-score { 
-    font-family: 'Nunito', sans-serif;
-    font-size: 24px; 
-    font-weight: 800; 
-    color: #FFD700; 
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
-
-/* =====================================================
-   THE PULSATING HEXAGON
-   ===================================================== */
-.score-box:first-child::before {
+#progress-trace::after {
     content: '';
     position: absolute;
-    top: 52%; left: 50%;
+    right: -20px; 
+    top: 0;
+    bottom: 0;
+    width: 20px;
     
-    /* Size: 50px */
+    background-color: var(--zone-color);
+    background-image: linear-gradient(to bottom, transparent 60%, rgba(255, 255, 255, 0.12) 100%);
+    
+    z-index: -1;
+    transition: background-color 0.3s ease;
+}
+
+/* LAYER 3: CURRENT SCORE CAPSULE (PISTON HEAD) */
+#progress-traveler {
+    position: absolute;
+    top: 50%;
+    transform: translate(0, -50%); 
+    
+    /* STACKING FIX: Highest Priority - Sits ABOVE Target */
+    z-index: 20; 
+    
+    height: 52px; 
+    min-width: 64px; 
+    padding: 0 14px;
+    background: linear-gradient(180deg, #376EA5 0%, #204B75 100%);
+    border-radius: 26px; 
+    box-shadow: 
+        0 6px 12px rgba(0,0,0,0.5), 
+        inset 0 1px 0 rgba(255,255,255,0.3); 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 
+        left 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+        background 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+/* --- HEXAGON STRUCTURE (HIDDEN) --- */
+
+#progress-traveler::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
     width: 50px; height: 50px;
-    
-    transform: translate(-50%, -50%) scale(0);
-    
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    
-    background: linear-gradient(135deg, var(--hex-start), var(--hex-end));
-    box-shadow: 0 0 25px var(--hex-start); 
-    
-    z-index: -1; 
+    background: linear-gradient(135deg, #2980B9 0%, #3498DB 100%);
+    transform: translate(-50%, -50%) scale(0);
     opacity: 0;
-    
-    transition: opacity 0.4s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    pointer-events: none;
+    z-index: 4; 
+    will-change: transform, opacity;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
 }
 
-/* --- STATE 0: FULL COMBO --- */
-body.combo-active[data-grace="0"] .score-box:first-child::before {
+#progress-traveler::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 60px; height: 60px; 
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: #3498DB; 
+    mask: radial-gradient(transparent 65%, black 66%); 
+    -webkit-mask: radial-gradient(transparent 65%, black 66%);
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 3;
+    transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+/* ---------------------------------------------------- */
+/* ACTIVATION STATE: .combo-tier-2 (Combo >= 2)         */
+/* ---------------------------------------------------- */
+
+#progress-traveler.combo-tier-2 {
+    /* TIER 1 DEFAULTS (Combo 2-5) */
+    --hex-scale: 1.08;
+    --hex-bright: 1.15;
+    --glow-radius: 24px;
+    --glow-alpha: 0.45;
+    --ring-scale: 1.35;
+    --ring-alpha: 0.55;
+
+    background: transparent !important; 
+    box-shadow: none !important;        
+}
+
+/* TIER 2 OVERRIDES (Combo 6-9) */
+#progress-traveler.combo-tier-2.tier-2 {
+    --hex-scale: 1.10;
+    --hex-bright: 1.20;
+    --glow-radius: 28px;
+    --glow-alpha: 0.55;
+    --ring-scale: 1.45;
+    --ring-alpha: 0.65;
+}
+
+/* TIER 3 OVERRIDES (Combo 10+) - CAPPED */
+#progress-traveler.combo-tier-2.tier-3 {
+    --hex-scale: 1.13;
+    --hex-bright: 1.25;
+    --glow-radius: 34px;
+    --glow-alpha: 0.65;
+    --ring-scale: 1.55;
+    --ring-alpha: 0.75;
+}
+
+/* ACTIVATE HEXAGON (Core Pulse) */
+#progress-traveler.combo-tier-2::before {
     transform: translate(-50%, -50%) scale(1);
-    opacity: 1; 
-    animation: hex-pulse 0.8s ease-in-out infinite;
+    opacity: 1;
+    animation: hex-breathe 900ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+    box-shadow: 
+        inset 0 0 10px rgba(41, 128, 185, 0.35),
+        0 0 var(--glow-radius) rgba(41, 128, 185, var(--glow-alpha));
 }
 
-/* --- STATE 1: MISS 1 (Dimmed) --- */
-body.combo-active[data-grace="1"] .score-box:first-child::before {
-    transform: translate(-50%, -50%) scale(0.9);
-    opacity: 0.6; 
-    animation: hex-pulse 1.2s ease-in-out infinite; 
-    filter: saturate(0.8);
+/* ACTIVATE ENERGY RING (Ripple) */
+#progress-traveler.combo-tier-2::after {
+    animation: ring-ripple 900ms cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
 }
 
-/* --- STATE 2: MISS 2 (Dimmest) --- */
-body.combo-active[data-grace="2"] .score-box:first-child::before {
-    transform: translate(-50%, -50%) scale(0.8);
-    opacity: 0.3; 
-    animation: hex-pulse 2s ease-in-out infinite;
-    filter: saturate(0.5);
+/* ---------------------------------------------------- */
+/* MICRO SPARKS (RESTORED & FIXED) */
+/* ---------------------------------------------------- */
+
+.capsule-impact {
+    animation: impact-mass 440ms cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
 }
 
-@keyframes hex-pulse {
-    0% { transform: translate(-50%, -50%) scale(1.0); }
-    50% { transform: translate(-50%, -50%) scale(1.15); }
-    100% { transform: translate(-50%, -50%) scale(1.0); }
+@keyframes impact-mass {
+    0% { transform: translate(0, -50%) scale(1); box-shadow: 0 6px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3); }
+    30% { transform: translate(0, -50%) scale(1.14); filter: brightness(1.45); box-shadow: 0 10px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.5), 0 0 20px rgba(41, 128, 185, 0.8); }
+    60% { transform: translate(0, -50%) scale(0.97); filter: brightness(1.0); box-shadow: 0 4px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3); }
+    100% { transform: translate(0, -50%) scale(1); box-shadow: 0 6px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3); }
 }
 
-/* =====================================================
-   COLOR TIERS
-   ===================================================== */
-
-body.combo-active { 
-    --hex-start: #00f2fe; 
-    --hex-end: #4facfe; 
+.impact-fx {
+    position: absolute;
+    top: 50%; left: 50%; width: 0; height: 0; pointer-events: none; z-index: 100; /* Increased z-index to ensure visibility */
 }
 
-body:has(.combo-popup[style*="feca57"]),
-body:has(.combo-popup[style*="5f27cd"]),
-body:has(.combo-popup[style*="ff6b6b"]),
-body:has(.combo-popup[style*="f1c40f"]),
-body:has(.combo-popup[style*="00ffcc"]) { 
-    --hex-start: #FFD700; /* Pure Gold */
-    --hex-end: #FFA500;   /* Orange Gold */
+.capsule-impact .impact-fx::before {
+    content: ''; position: absolute; top: 50%; left: 50%; width: 9px; height: 9px;
+    border-radius: 50%; background: transparent; transform: translate(-50%, -50%);
+    box-shadow: 0 -20px 0 #3498DB, 20px 0 0 #3498DB, 0 20px 0 #3498DB, -20px 0 0 #3498DB;
+    opacity: 0; animation: particle-ring 350ms ease-out forwards;
 }
 
+.capsule-impact .impact-fx::after {
+    content: ''; position: absolute; top: 50%; left: 50%; width: 3.5px; height: 3.5px;
+    border-radius: 50%; background: transparent; transform: translate(-50%, -50%);
+    box-shadow: 15px -15px 0 #3498DB, 15px 15px 0 #3498DB, -15px 15px 0 #3498DB, -15px -15px 0 #3498DB;
+    opacity: 0; animation: particle-scatter 400ms ease-out forwards;
+}
 
-/* --- GRID (STAGE LIGHTING) --- */
+@keyframes particle-ring {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2.25); }
+}
+
+@keyframes particle-scatter {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.2) rotate(0deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(3.15) rotate(45deg); }
+}
+
+/* ---------------------------------------------------- */
+/* STEP H: CAPSULE PARITY & ADAPTIVE TEXT */
+/* ---------------------------------------------------- */
+
+/* SHARED TYPOGRAPHY & SCALING */
+#score-val, #target-val {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 22px; /* Base size for 1-3 digits */
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    transition: font-size 0.1s linear;
+    position: relative;
+    z-index: 5;
+}
+
+#score-val { color: #F0F4F8; }
+
+/* ADAPTIVE TEXT SIZING (Data Attribute Driven) */
+[data-len="4"] { font-size: 19px !important; letter-spacing: 0px !important; }
+[data-len="5"] { font-size: 17px !important; letter-spacing: -0.5px !important; }
+[data-len="6"] { font-size: 15px !important; letter-spacing: -1px !important; }
+
+/* 2. THE DESTINATION (Refined Seam & Parity) */
+#progress-target {
+    flex-shrink: 0;
+    height: 52px; 
+    min-width: 64px; /* MATCHES TRAVELER EXACTLY */
+    padding: 0 14px; /* REDUCED from 20px to match Traveler */
+    
+    /* Deep Navy Background */
+    background: linear-gradient(180deg, #232a35 0%, #161b22 100%);
+    border-radius: 26px;
+    border: 1px solid rgba(255,255,255,0.05); 
+    
+    /* Shadow structure */
+    box-shadow: 
+        0 4px 12px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+        
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    
+    /* STACKING: Lower than Traveler (20) */
+    z-index: 5; 
+    
+    /* SEAM INTEGRATION: Pull closer to tunnel */
+    margin-left: -14px; 
+}
+
+/* SEAM SHADOW (Soft darkness where tunnel meets target) */
+#progress-target::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 12px;
+    background: linear-gradient(90deg, rgba(0,0,0,0.3), transparent);
+    border-radius: 6px 0 0 6px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+#target-val {
+    color: #9BFF6A;
+    opacity: 1;
+    text-shadow: 0 0 10px rgba(155, 255, 106, 0.3); 
+    z-index: 2;
+}
+
+/* --- GRID & CELLS --- */
 #grid-wrapper { 
-    background: radial-gradient(circle at center, var(--bg-grid-center) 0%, var(--bg-grid-edge) 85%);
-    padding: 12px; 
-    border-radius: var(--rad-grid); 
+    background: radial-gradient(circle at center, #1A1D24 0%, #111318 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
     width: 404px; 
     height: 404px; 
+    padding: 12px; 
+    margin-top: 0; 
     position: relative; 
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.55);
-    margin-top: 0px; 
     overflow: visible; 
-    z-index: 1; 
+    z-index: 5;
+    touch-action: none;
 }
 
-#grid { display: grid; grid-template-columns: repeat(8, 44px); gap: 4px; }
+/* NEW FX LAYER */
+.clear-fx-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 20;
+    overflow: visible;
+}
 
-/* EMPTY CELLS */
+#grid { 
+    display: grid; 
+    grid-template-columns: repeat(8, 44px); 
+    gap: 4px; 
+}
+
 .cell { 
     width: 44px; 
     height: 44px; 
-    background: var(--bg-cell); 
-    border-radius: var(--rad-cell); 
-    position: relative;
-    z-index: 1; 
+    background: #262A35; 
+    border-radius: 4px; 
+    position: relative; 
+    transition: background 0.1s;
 }
 
-/* OCCUPIED BLOCKS */
-.cell.occupied { 
-    background: var(--block-color); 
-    border-radius: var(--rad-block);
-    opacity: 1 !important; 
-    z-index: 2; 
+.cell.occupied, .block {
+    background-color: var(--block-color);
+    border-radius: 6px; 
     box-shadow: 
-        inset 3px 3px 0px 0px rgba(255,255,255,0.4),
-        inset -3px -3px 0px 0px rgba(0,0,0,0.2);
+        inset 3px 3px 0px rgba(255, 255, 255, 0.4),
+        inset -3px -3px 0px rgba(0, 0, 0, 0.2);
+    border: none;
+    opacity: 1;
 }
 
-.clear-resolve {
-    z-index: 50; 
+/* --- ANIMATIONS & FX --- */
+.placed-impact { animation: place-flash 0.4s ease-out forwards; z-index: 15; }
+@keyframes place-flash {
+    0% { filter: brightness(1.4); transform: scale(1.05); }
+    100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* --- TRAY SYSTEM --- */
+#tray { 
+    width: 100%; 
+    margin-top: 30px; 
+    display: flex; 
+    justify-content: space-between; 
+    height: 120px;
+    position: relative;
+    z-index: 10;
+    touch-action: none; 
+    transition: opacity 0.3s; /* ADDED FOR FADE OUT */
+}
+
+.tray-slot { 
+    width: 128px; 
+    height: 120px; 
+    background: transparent; 
+    border-radius: 8px; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    touch-action: none; 
+}
+
+.piece { position: relative; pointer-events: none; }
+.block { position: absolute; width: 26px; height: 26px; }
+
+.piece.dragging { position: fixed; z-index: 1000; pointer-events: none; }
+.piece.dragging .block {
+    width: 44px; 
+    height: 44px; 
+    border-radius: 6px;
+    box-shadow: 
+        0 10px 20px rgba(0,0,0,0.3),
+        inset 3px 3px 0px rgba(255, 255, 255, 0.4),
+        inset -3px -3px 0px rgba(0, 0, 0, 0.2);
+}
+
+@media (pointer: coarse) {
+    .piece.dragging .block {
+        box-shadow: 
+            0 25px 30px rgba(0,0,0,0.4),
+            inset 3px 3px 0px rgba(255, 255, 255, 0.4),
+            inset -3px -3px 0px rgba(0, 0, 0, 0.2);
+        transform: scale(1.08);
+    }
+}
+
+/* --- UI / OVERLAYS --- */
+
+/* GLASSMORPHISM OVERLAY */
+#game-over-overlay { 
+    position: fixed; 
+    inset: 0; 
+    
+    /* Transparent Dark Base to let blur show */
+    background: rgba(5, 8, 12, 0.85); 
+    
+    /* The Blur Effect */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    
+    display: flex; 
+    flex-direction: column; /* Changed to column for stacking */
+    align-items: center; 
+    justify-content: center; 
+    z-index: 9999;
+    
+    /* Animation State Props */
+    opacity: 0;
+    pointer-events: none; /* Click-through when hidden */
+    transition: opacity 0.4s ease-out;
+}
+
+/* Active State */
+#game-over-overlay.overlay-active {
+    opacity: 1;
+    pointer-events: all; /* Re-enable clicks */
+}
+
+/* NEW: LEVEL FAILED TEXT (UPDATED FONT & SIZE) */
+.failure-message {
+    position: absolute;
+    bottom: 55%; /* As requested: 55% from bottom */
+    width: 100%;
+    
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Center align text vertically */
+    gap: 15px; /* Spacing between words */
+    
+    /* UPDATED FONT: Matching 'Angry Birds' heavy cartoony style */
+    font-family: 'Rubik Mono One', sans-serif; 
+    font-weight: 400; /* Rubik Mono One is implicitly bold */
+    font-style: normal; /* Not tilted */
+    text-transform: uppercase;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.word-level { 
+    color: #FFFFFF; 
+    font-size: 30px; /* Reduced by ~20% */
+    opacity: 0; /* Hidden initially */
+}
+
+.word-failed { 
+    color: #FF4444; 
+    font-size: 48px; /* Kept large */
+    opacity: 0; /* Hidden initially */
+}
+
+/* OPTION 1: HEAVY STAMP ANIMATION */
+@keyframes stamp-slam {
+    0% { opacity: 0; transform: scale(4); filter: blur(4px); }
+    60% { opacity: 1; transform: scale(0.9); filter: blur(0px); } /* Hard landing */
+    80% { transform: scale(1.05); } /* Slight rebound */
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* Active Class Triggers Animation */
+.word-level.active {
+    animation: stamp-slam 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+/* UPDATED: LEVEL FAILED TEXT TIMING */
+.word-failed.active {
+    animation: stamp-slam 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; /* Duration 0.45s */
+    animation-delay: 0.25s; /* Delay 0.25s */
+}
+
+/* --- NEW: GAME OVER BUTTONS (MATCHING IMAGE) --- */
+.game-over-buttons {
+    position: absolute;
+    bottom: 35%; /* Positioned below the text */
+    display: flex;
+    gap: 20px;
+    opacity: 0; /* Hidden initially */
+    transform: translateY(20px);
+    pointer-events: none; /* No clicks until visible */
+}
+
+/* The Trigger Class */
+.game-over-buttons.active {
+    animation: buttons-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    /* TIMING MATH: 0.25s (Failed Delay) + 0.45s (Failed Duration) + 0.3s (Gap) = 1.0s */
+    animation-delay: 1.0s; 
+    pointer-events: auto;
+}
+
+@keyframes buttons-enter {
+    from { opacity: 0; transform: translateY(30px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Button Visual Style (Glossy Yellow/Orange) */
+.action-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 3px solid #FFF; /* Thick white rim */
+    background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%); /* Yellow to Orange */
+    box-shadow: 
+        0 6px 0 #D46A00, /* Hard darker shadow for depth */
+        0 10px 10px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.1s;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.action-btn:active {
+    transform: translateY(4px);
+    box-shadow: 
+        0 2px 0 #D46A00, 
+        0 4px 5px rgba(0,0,0,0.3);
+}
+
+/* Button Icons (SVG Styling) */
+.action-btn svg {
+    width: 36px;
+    height: 36px;
+    fill: #FFF;
+    filter: drop-shadow(0 2px 0 rgba(160, 80, 0, 0.5));
+}
+
+/* Dormant State */
+.action-btn.dormant {
+    filter: grayscale(0.4) opacity(0.8);
+    cursor: default;
+}
+.action-btn.dormant:active {
+    transform: none;
+    box-shadow: 0 6px 0 #D46A00, 0 10px 10px rgba(0,0,0,0.3);
+}
+
+/* =========================================================
+   STEP J/K: TARGET REACHED & COLOR NEUTRALIZATION
+   ========================================================= */
+
+/* --- 1. Z-INDEX OVERRIDE (CRITICAL) --- */
+/* Forces the progress system to sit ON TOP of the victory dim (8500) */
+.target-reached #progress-system {
+    z-index: 9000 !important;
+}
+
+/* 2. HIDE TARGET INSTANTLY */
+.target-reached #progress-target {
+    opacity: 0 !important;
+    pointer-events: none;
+    transition: none !important; 
+}
+
+/* 3. SNAP TRAVELER TO TARGET POSITION */
+.target-reached #progress-traveler {
+    transform: translate(-14px, -50%) !important;
+}
+
+/* 4. TUNNEL: WHITE LIGHT BLOOM (With 50ms Delay) */
+.target-reached #progress-trace {
+    /* Pure White + Strong Glow */
+    background-color: #E0F7FA !important;
+    background-image: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(224, 247, 250, 0.8)) !important;
+    
+    /* BLOOM: Box shadow must be large to glow "in the dark" */
+    box-shadow: 0 0 50px 10px rgba(224, 247, 250, 0.8) !important;
+    
+    /* TIMING: 50ms delay on Color/Glow so dim happens first */
+    transition: 
+        width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+        background-color 0.8s ease-out 50ms, /* DELAY ADDED HERE */
+        box-shadow 0.8s ease-out 50ms;        /* DELAY ADDED HERE */
+}
+
+/* 5. CAPSULE: TOTAL COLOR NEUTRALIZATION */
+.target-reached #progress-traveler {
+    /* Force Pure White Body */
+    background: #FFFFFF !important;
+    
+    /* White Aura - REMOVE ALL BLUE TINTS */
+    box-shadow: 0 0 60px 15px rgba(255, 255, 255, 0.9) !important;
+    
+    /* Dark Text for Contrast */
+    color: #3E50A4 !important;
+    
+    /* Smooth Dissolve of Color */
+    transition: 
+        background 0.6s ease-out,
+        box-shadow 0.6s ease-out,
+        color 0.3s ease,
+        transform 0.2s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+/* 6. NEUTRALIZE INNER HEXAGON (::before) */
+/* This specifically kills the blue gradient core */
+.target-reached #progress-traveler::before {
+    background: #FFFFFF !important; /* Merge into body */
+    box-shadow: none !important;    /* Kill the glow */
+    transition: background 0.6s ease-out, box-shadow 0.4s ease;
+}
+
+/* 7. SHOCKWAVE (::after) - One-shot burst then gone */
+.target-reached #progress-traveler::after {
+    content: '';
+    clip-path: none !important;
+    mask: none !important;
+    -webkit-mask: none !important;
+    background: radial-gradient(circle, rgba(255,255,255,1) 0%, transparent 70%);
+    width: 150px; height: 150px;
+    
+    animation: shockwave-expand 0.5s ease-out forwards !important;
+    z-index: -1;
+}
+
+/* 8. TEXT CLEANUP */
+.target-reached #score-val {
+    color: #3E50A4 !important;
+    text-shadow: none !important;
+    transition: color 0.3s ease;
+}
+
+@keyframes shockwave-expand {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
+}
+
+/* --- VICTORY DIM LAYER (STEP 2) --- */
+#victory-dim {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 15, 0.90); /* Slightly darker for better contrast */
+    z-index: 8500; /* High, but lower than .target-reached #progress-system (9000) */
+    opacity: 0;
+    pointer-events: none; 
+    transition: opacity 0.1s; /* Immediate */
+}
+
+#victory-dim.active {
+    animation: victory-dim-in 400ms ease-out forwards;
+}
+
+@keyframes victory-dim-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* =========================================================
+   STEP 3: REALISTIC ROCKET FIREWORKS (PHYSICS + COLORS)
+   ========================================================= */
+
+#victory-fireworks {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9000;
+    overflow: hidden;
+}
+
+/* 1. THE ROCKET (ASCENT) */
+.firework-rocket {
+    position: absolute;
+    bottom: -50px; 
+    width: 4px;
+    height: 40px;
+    
+    /* White hot trail is standard for ascent */
+    background: linear-gradient(to top, transparent, #fff);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    
+    transform-origin: bottom center;
+    will-change: transform;
+    
+    /* DYNAMIC HEIGHT: Uses variable set in JS */
+    /* SPEED INCREASED: 800ms -> 450ms */
+    animation: rocket-flight 450ms ease-out forwards;
+}
+
+@keyframes rocket-flight {
+    0% { 
+        transform: translateY(0) scaleY(1); 
+        opacity: 1; 
+    }
+    70% {
+        opacity: 1;
+    }
+    100% { 
+        /* Target specific height determined by JS */
+        transform: translateY(var(--target-y)) scaleY(0.5); 
+        opacity: 0; 
+    }
+}
+
+/* 2. THE PARTICLES (EXPLOSION) */
+.firework-particle {
+    position: absolute;
+    width: 4px;  /* SIZE REDUCED: 8px -> 4px */
+    height: 4px; /* SIZE REDUCED: 8px -> 4px */
+    border-radius: 50%;
+    
+    /* COLOR is now handled via Inline Style (JS) for variety */
+    /* We just set the transition/animation here */
+    
+    will-change: transform, opacity;
+    animation: particle-burst 1200ms cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+@keyframes particle-burst {
+    0% { 
+        transform: translate(0, 0) scale(1); 
+        opacity: 1; 
+    }
+    15% {
+        opacity: 1; /* Stay bright briefly */
+    }
+    100% { 
+        transform: translate(var(--dx), var(--dy)) scale(0.5); 
+        opacity: 0; 
+    }
+}
+
+/* =========================================================
+   STEP 4: LEVEL COMPLETION UI (NEW)
+   ========================================================= */
+
+#victory-ui-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none; /* Let clicks pass through initially */
+    z-index: 9700; /* Above Fireworks (9000), Below Overlay (9999) */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+#victory-ui-layer.hidden { display: none; }
+
+/* 1. VICTORY TEXT CONTAINER (Fade Out Logic) */
+.victory-message {
+    position: absolute;
+    bottom: 55%; /* Matches Failed Text Position */
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    
+    font-family: 'Rubik Mono One', sans-serif; 
+    font-weight: 400;
+    text-transform: uppercase;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    
+    /* FADE OUT ANIMATION (Clears stage for fireworks) */
+    opacity: 1; 
+}
+
+.victory-message.fading {
+    animation: ui-fade-out 0.5s ease-in forwards;
+}
+
+@keyframes ui-fade-out {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(1.1); }
+}
+
+/* 2. THE WORDS (Stamp Logic) */
+.word-level-vic { 
+    color: #FFFFFF; 
+    font-size: 30px; 
+    opacity: 0; 
+}
+.word-cleared-vic { 
+    color: #9BFF6A; /* NEON GREEN */
+    font-size: 48px; 
+    opacity: 0; 
+    text-shadow: 0 0 20px rgba(155, 255, 106, 0.4); /* Extra Glow */
+}
+
+/* Animation Triggers (Identical to Failed but Green) */
+.word-level-vic.active {
+    animation: stamp-slam 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+.word-cleared-vic.active {
+    animation: stamp-slam 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+    animation-delay: 0.25s;
+}
+
+/* --- VICTORY BUTTONS (Floating Set) --- */
+.game-over-buttons.victory-set {
+    bottom: 25%; /* Lower position */
+    width: 100%;
+    justify-content: center;
+    z-index: 9800; 
+}
+
+/* Trigger Animation (Delayed) */
+.game-over-buttons.victory-set.active {
+    animation: buttons-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation-delay: 2.5s; /* Wait for fireworks */
+    pointer-events: auto;
+}
+
+/* =========================================================
+   STEP 5: PREVIEW GHOSTS (NORMAL + LINE CLEAR)
+   ========================================================= */
+
+/* A) NORMAL PLACEMENT GHOST */
+.cell.ghost {
     background: var(--block-color);
-    border-radius: var(--rad-block);
+    border-radius: 6px; 
+    z-index: 100;
+    opacity: 0.5 !important;
+    border: 1px solid rgba(255,255,255,0.3);
+    animation: preview-pulse 1.2s ease-in-out alternate infinite;
+    box-shadow: none;
 }
 
-.placed-impact { 
-    animation: place-pop 0.3s ease-out forwards; 
-    z-index: 15; 
-}
-
-@keyframes place-pop {
-    0% { transform: scale(0.8); filter: brightness(1.3); }
-    60% { transform: scale(1.05); }
-    100% { transform: scale(1); filter: brightness(1); }
-}
-
-/* =====================================================
-   GHOST PREVIEWS
-   ===================================================== */
 @keyframes preview-pulse {
     0% { opacity: 0.5; transform: scale(0.95); filter: brightness(1); }
     100% { opacity: 0.8; transform: scale(1); filter: brightness(1.3); }
 }
 
-.cell.ghost { 
-    background: var(--block-color); 
-    border-radius: var(--rad-block);
-    z-index: 100;
-    opacity: 0.5 !important; 
-    border: 1px solid rgba(255,255,255,0.3); 
-    animation: preview-pulse 1.2s ease-in-out alternate infinite;
-    box-shadow: none; 
-}
-
+/* B) LINE CLEAR PREVIEW GHOST (STRONGER) */
 .cell.ghost-clear {
     background: var(--preview-color) !important;
-    border-radius: var(--rad-block);
+    border-radius: 6px;
     z-index: 100;
-    border: 1px solid rgba(255,255,255,0.6); 
+    border: 1px solid rgba(255,255,255,0.6);
     animation: clear-pulse 0.6s ease-in-out alternate infinite;
 }
 
@@ -320,531 +934,8 @@ body:has(.combo-popup[style*="00ffcc"]) {
     100% { opacity: 1.0; filter: brightness(1.6); transform: scale(1); }
 }
 
-/* --- TRAY --- */
-#tray { 
-    width: 100%; 
-    margin-top: 30px; 
-    display: flex; 
-    justify-content: space-between; 
-    height: 120px; 
-    transition: opacity 0.3s;
-}
-
-.tray-slot { 
-    width: 128px; 
-    height: 120px; 
-    background: transparent; 
-    border-radius: 12px; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-}
-
-.piece { position: relative; pointer-events: none; }
-
-.tray-slot .piece {
-    filter: saturate(0.9) brightness(0.95) drop-shadow(0 6px 6px rgba(0,0,0,0.15));
-    transition: filter 0.2s;
-}
-
-.block { 
-    position: absolute; 
-    width: 26px; 
-    height: 26px; 
-    background: var(--block-color); 
-    border-radius: 4px; 
-    opacity: 1 !important; 
-    box-shadow: 
-        inset 2px 2px 0px 0px rgba(255,255,255,0.4),
-        inset -2px -2px 0px 0px rgba(0,0,0,0.2);
-}
-
-.piece.dragging { position: fixed; z-index: 1000; pointer-events: none; }
-.piece.dragging .block {
-    width: 44px; height: 44px; 
-    border-radius: var(--rad-block);
-    opacity: 1 !important; 
-    animation: none; transition: none;
-    filter: none;
-    box-shadow: 
-        inset 3px 3px 0px 0px rgba(255,255,255,0.5),
-        inset -3px -3px 0px 0px rgba(0,0,0,0.2),
-        0 8px 15px rgba(0,0,0,0.3);
-}
-@media (pointer: coarse) {
-    .piece.dragging .block { transform: scale(1.1); }
-}
-
-/* =====================================================
-   FLOATING SCORE
-   ===================================================== */
-.floating-score {
-    position: fixed;
-    left: var(--start-x);
-    top: var(--start-y);
-    color: #ffffff;
-    font-family: 'Kanit', sans-serif;
-    font-weight: 700;
-    font-size: 32px;
-    pointer-events: none;
-    z-index: 20006;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5); 
-    transform: translate(-50%, -50%);
-    will-change: transform;
-}
-
-.score-animate { animation: score-travel 1s linear forwards; }
-
-@keyframes score-travel {
-    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
-    10% { transform: translate(-50%, -80%) scale(1.2); opacity: 1; }
-    100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1); opacity: 0; }
-}
-
-/* =====================================================
-   COMBO & REINFORCEMENT SYSTEM
-   ===================================================== */
-
-@keyframes shake-1 { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-2px, 2px); } 75% { transform: translate(2px, -2px); } }
-@keyframes shake-2 { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-4px, 0); } 40% { transform: translate(4px, 0); } 60% { transform: translate(-4px, 0); } 80% { transform: translate(4px, 0); } }
-@keyframes shake-3 { 0%, 100% { transform: translate(0, 0); } 10%, 90% { transform: translate(-5px, -2px); } 30%, 70% { transform: translate(5px, 3px); } 50% { transform: translate(-5px, 5px); } }
-
-.shake-1 { animation: shake-1 0.1s linear; }
-.shake-2 { animation: shake-2 0.12s linear; }
-.shake-3 { animation: shake-3 0.15s linear; }
-
-.combo-popup {
-    position: absolute;
-    top: 52%; 
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 20010;
-    pointer-events: none;
-    animation: combo-pop 0.98s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    will-change: transform;
-}
-
-.combo-label {
-    font-family: 'Kanit', sans-serif;
-    font-weight: 900;
-    font-style: italic;
-    font-size: 55px;
-    color: #fff;
-    -webkit-text-stroke: 2px #fff;
-    text-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    line-height: 1;
-}
-
-.combo-value {
-    font-family: 'Kanit', sans-serif;
-    font-weight: 900;
-    font-style: italic;
-    font-size: 88px;
-    line-height: 1;
-    margin-top: 8px;
-    background: -webkit-linear-gradient(#fff, var(--combo-color));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    -webkit-text-stroke: 3px #fff;
-    filter: drop-shadow(0 6px 0 var(--combo-color));
-}
-
-@keyframes combo-pop {
-    0% { transform: translate(-50%, -20%) scale(0.5); opacity: 0; }
-    40% { transform: translate(-50%, -60%) scale(1.2); opacity: 1; }
-    100% { transform: translate(-50%, -80%) scale(1); opacity: 0; }
-}
-
-.reinforcement-banner {
-    position: absolute;
-    top: 38%;
-    left: 0;
-    width: 100%;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 20020;
-    pointer-events: none;
-    
-    background: linear-gradient(90deg, transparent, var(--combo-color), transparent);
-    border-top: 2px solid var(--combo-color);
-    border-bottom: 2px solid var(--combo-color);
-    
-    animation: banner-wipe 0.85s ease-out forwards;
-    transform-origin: center;
-    will-change: transform;
-}
-
-.banner-text {
-    font-family: 'Rubik Mono One', sans-serif;
-    font-size: 26px;
-    color: #fff;
-    letter-spacing: 5px;
-    text-transform: uppercase;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    white-space: nowrap;
-}
-
-@keyframes banner-wipe {
-    0% { transform: scaleX(0); opacity: 0; }
-    20% { transform: scaleX(1); opacity: 1; }
-    80% { transform: scaleX(1); opacity: 1; }
-    100% { transform: scaleX(1.2); opacity: 0; }
-}
-
-/* =====================================================
-   FULL SCREEN GAME OVER OVERLAY (FIXED DELAY)
-   ==================================================== */
-
-#game-over-overlay {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 5000;
-    
-    /* UNIFORMITY FIX: Exact same gradient as HTML */
-    background: linear-gradient(180deg, var(--bg-friendly-top) 0%, var(--bg-friendly-bot) 100%);
-    
-    display: none; 
-    opacity: 0; /* Start invisible */
-    
-    align-items: center;
-    justify-content: center;
-}
-
-/* Keyframe for robust delaying */
-@keyframes overlayFadeIn {
-    0% { opacity: 0; }
-    100% { opacity: 1; }
-}
-
-/* ACTIVE STATE */
-#game-over-overlay:not(.hidden) {
-    display: flex;
-    
-    /* USE ANIMATION INSTEAD OF TRANSITION */
-    /* This forces the delay to be respected even after display:none switch */
-    animation: overlayFadeIn 0.4s ease forwards;
-    
-    /* TIMING CALCULATION:
-       - Grid Animation Ends: ~920ms
-       - JS Triggers Overlay: 800ms
-       - Desired Wait: 400ms after grid
-       - Target Appearance: 1320ms (920 + 400)
-       - Required Delay: 1320 - 800 = 520ms
-       - Set to 0.55s (550ms) for safety
-    */
-    animation-delay: 0.55s;
-}
-
-/* WHEN ACTIVE: TRIGGER CONTENT ANIMATION */
-#game-over-overlay:not(.hidden) .game-over-content {
-    animation: pop-in-content 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    
-    /* Content appears slightly after the blue screen starts */
-    /* 0.55s (bg start) + 0.15s offset = 0.7s */
-    animation-delay: 0.7s; 
-}
-
-/* --- Content Wrapper (Transparent now) --- */
-.game-over-content {
-    background: transparent;
-    box-shadow: none;
-    border: none;
-    
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    
-    opacity: 0; /* Start hidden for animation */
-    transform: scale(0.8);
-    
-    width: 100%;
-    max-width: none;
-}
-
-/* THE POP ANIMATION */
-@keyframes pop-in-content {
-    0% { opacity: 0; transform: scale(0.8); }
-    100% { opacity: 1; transform: scale(1.25); } 
-}
-
-/* --- Title --- */
-#gameOverTitle {
-    color: #ffffff;
-    font-family: 'Verdana', 'Segoe UI', sans-serif;
-    font-size: 2.5rem; 
-    font-weight: 800; 
-    margin: 0 0 40px 0; 
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 0 4px 0 rgba(0,0,0,0.1);
-    line-height: 1;
-}
-
-.highlight-char {
-    font-size: 1.3em;
-    vertical-align: -3px; 
-}
-
-/* --- Score Groups --- */
-.go-score-container, .go-best-container {
-    margin-bottom: 25px; 
-    width: 100%;
-}
-
-.go-label {
-    color: #bdfaff; 
-    font-family: 'Verdana', sans-serif;
-    font-size: 1rem;
-    font-weight: 600; 
-    margin: 0 0 5px 0;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    opacity: 0.9;
-}
-
-#go-score-val {
-    font-family: 'Verdana', sans-serif;
-    font-size: 3.5rem; 
-    font-weight: 700; 
-    color: #ffffff;
-    margin: 0;
-    text-shadow: 0 4px 15px rgba(255,255,255,0.3);
-}
-
-#go-best-val {
-    font-family: 'Verdana', sans-serif;
-    font-size: 2rem;
-    font-weight: 700; 
-    color: #ffeaa7; 
-    margin: 0;
-    text-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* --- Replay Button --- */
-.go-play-btn {
-    background-color: #55efc4; 
-    border: none;
-    border-radius: 20px;
-    cursor: pointer;
-    margin-top: 40px;
-    
-    /* Thinner Padding */
-    padding: 9px 100px; 
-    width: auto;
-    
-    /* Thinner Shadow */
-    box-shadow: 0 5px 0 #00b894, 0 20px 30px rgba(0,0,0,0.2);
-    transition: all 0.1s ease;
-    
-    opacity: 0; 
-    transform: translateY(20px);
-    pointer-events: none;
-}
-
-.go-play-btn.reveal {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: all;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.go-play-btn:active {
-    transform: translateY(5px); 
-    box-shadow: 0 0 0 #00b894;
-}
-
-.go-play-btn svg {
-    filter: drop-shadow(0 4px 3px rgba(0,0,0,0.2));
-    display: block;
-    width: 38px;
-    height: 38px;
-}
-
-/* =====================================================
-   NEW BEST SCORE ANIMATION (TURBO PREMIUM VERSION)
-   ===================================================== */
-
-/* Container */
-#new-best-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 2000;
-    pointer-events: none;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, transparent 60%);
-    animation: bg-flash 0.3s ease-out forwards;
-}
-
-@keyframes bg-flash {
-    0% { opacity: 0; transform: scale(0.8); }
-    100% { opacity: 1; transform: scale(1); }
-}
-
-.celebration-content {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-/* --- 1. THE CROWN (Optimized Duration) --- */
-
-.crown-container {
-    width: 110px;
-    height: 110px;
-    z-index: 10;
-    transform-origin: center bottom;
-    animation: crown-lifecycle 2.0s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-.crown-svg {
-    width: 100%;
-    height: 100%;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23FFD700'/%3E%3Cstop offset='50%25' style='stop-color:%23FDB931'/%3E%3Cstop offset='100%25' style='stop-color:%23FFD700'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' stroke='%23B8860B' stroke-width='1' d='M50 20 L65 45 L85 25 L80 55 L95 40 L90 75 Q50 85 10 75 L5 40 L20 55 L15 25 L35 45 Z' /%3E%3Ccircle cx='5' cy='40' r='3' fill='%23FFD700' stroke='%23B8860B'/%3E%3Ccircle cx='15' cy='25' r='3' fill='%23FFD700' stroke='%23B8860B'/%3E%3Ccircle cx='50' cy='20' r='4' fill='%23FFD700' stroke='%23B8860B'/%3E%3Ccircle cx='85' cy='25' r='3' fill='%23FFD700' stroke='%23B8860B'/%3E%3Ccircle cx='95' cy='40' r='3' fill='%23FFD700' stroke='%23B8860B'/%3E%3C/svg%3E");
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center bottom;
-    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9));
-}
-
-@keyframes crown-lifecycle {
-    0% { transform: scale(2.0) translateY(30px); filter: drop-shadow(0 0 50px #FFF) brightness(3.0); opacity: 0; }
-    15% { transform: scale(1.0) translateY(0); filter: drop-shadow(0 0 20px #FFD700) brightness(1.2); opacity: 1; }
-    30% { transform: scale(1.0) translateY(-22px); filter: drop-shadow(0 4px 2px rgba(0,0,0,0.4)) brightness(1); opacity: 1; }
-    60% { transform: scale(1.0) translateY(-22px); opacity: 1; }
-    100% { transform: scale(0.95) translateY(-80px); opacity: 0; }
-}
-
-/* --- 2. THE BANNER (Synced Lifecycle) --- */
-.best-banner {
-    position: absolute;
-    top: 75px; 
-    z-index: 5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: banner-lifecycle 2.0s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    animation-delay: 0.2s; 
-    opacity: 0;
-}
-
-@keyframes banner-lifecycle {
-    0% { transform: scale(0.2) translateY(-20px); opacity: 0; }
-    15% { transform: scale(1) translateY(0); opacity: 1; }
-    60% { transform: scale(1) translateY(0); opacity: 1; }
-    100% { transform: scale(0.9) translateY(10px); opacity: 0; }
-}
-
-.ribbon-center {
-    background: linear-gradient(180deg, #BA68C8 0%, #7B1FA2 45%, #4A148C 55%, #4A148C 100%);
-    color: #FFF;
-    padding: 6px 28px;
-    font-family: 'Kanit', sans-serif;
-    font-weight: 900;
-    font-size: 22px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    border-radius: 4px;
-    border: 1px solid #BA68C8; 
-    border-bottom: 3px solid #38006b; 
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    transform: perspective(200px) rotateX(5deg);
-}
-
-.ribbon-tail-l, .ribbon-tail-r {
-    position: absolute;
-    top: 6px;
-    z-index: -1;
-    width: 24px; 
-    height: 28px;
-    background: #311B92; 
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.6);
-    border-radius: 2px;
-}
-
-.ribbon-tail-l { left: -10px; transform: skewY(20deg) scale(0.9); }
-.ribbon-tail-r { right: -10px; transform: skewY(-20deg) scale(0.9); }
-
-.fade-out-best { animation: fade-overlay-out 1.0s ease-in forwards !important; }
-
-@keyframes fade-overlay-out {
-    0% { opacity: 1; transform: scale(1); }
-    100% { opacity: 0; transform: scale(1.1); }
-}
-
-/* =====================================================
-   STEP 2: GAME OVER SEQUENCE
-   ===================================================== */
-
-.visual-fill {
-    background: var(--block-color);
-    border-radius: var(--rad-block);
-    box-shadow: 
-        inset 3px 3px 0px 0px rgba(255,255,255,0.4),
-        inset -3px -3px 0px 0px rgba(0,0,0,0.2);
-    animation: fill-pop 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    position: relative;
-    z-index: 10;
-}
-
-@keyframes fill-pop {
-    0% { transform: scale(0); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.state-dimmed {
-    filter: brightness(0.8) !important;
-    transition: filter 0.4s ease;
-}
-
-/* "No Space Left" Toast */
-#no-space-message {
-    width: 100%;
-    height: 60px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-family: 'Kanit', sans-serif;
-    font-weight: 900;
-    font-size: 28px;
-    color: #ffffff;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    position: absolute;
-    /* MOVED UP by 50px (was 70px, now 120px) */
-    bottom: 120px; 
-    left: 0;
-    z-index: 100;
-    background: rgba(26, 29, 36, 0.95);
-    border-radius: 12px;
-    animation: msg-slide-up 0.3s ease-out forwards;
-}
-
-@keyframes msg-slide-up {
-    0% { transform: translateY(20px); opacity: 0; }
-    100% { transform: translateY(0); opacity: 1; }
-}
-
-#no-space-message.hidden { display: none; }
-
 /* ============================================
-   NEON SNAP VFX & LIGHTING
+   NEON SNAP VFX & LIGHTING [REPLACED 1:1]
    ============================================ */
 
 .fx-dying-block {
@@ -918,14 +1009,165 @@ body:has(.combo-popup[style*="00ffcc"]) {
 @keyframes flashbang-dim { 0% { background: rgba(255,255,255,0.2); } 100% { background: transparent; } }
 .flashbang-active { animation: flashbang-dim 0.15s linear; }
 
+/* =========================================================
+   COMBO & REINFORCEMENT VISUALS (V4 STYLE MATCH 1:1)
+   ========================================================= */
+
+.combo-popup {
+    position: absolute;
+    top: 52%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20010;
+    pointer-events: none;
+    animation: combo-pop 0.98s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    will-change: transform;
+}
+
+/* 1. COMBO LABEL ("COMBO") */
+.combo-label {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 55px;          /* V4 Size */
+    color: #fff;              /* V4 Color */
+    -webkit-text-stroke: 2px #fff; /* V4 Stroke */
+    text-shadow: 0 4px 8px rgba(0,0,0,0.3); /* V4 Shadow */
+    line-height: 1;
+}
+
+/* 2. COMBO VALUE ("x5") */
+.combo-value {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 88px;          /* V4 Size */
+    line-height: 1;
+    margin-top: 8px;
+    
+    /* V4 Gradient Text Fill */
+    background: -webkit-linear-gradient(#fff, var(--combo-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    
+    /* V4 Stroke & Drop Shadow */
+    -webkit-text-stroke: 3px #fff;
+    filter: drop-shadow(0 6px 0 var(--combo-color));
+}
+
+/* 3. REINFORCEMENT TEXT ("SWEET", "NICE") */
+.banner-text {
+    font-family: 'Rubik Mono One', sans-serif; /* V4 Font */
+    font-size: 26px;          /* V4 Size */
+    color: #fff;
+    letter-spacing: 5px;      /* V4 Spacing */
+    text-transform: uppercase;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    white-space: nowrap;
+}
+
+/* Ensure the banner container itself aligns correctly */
+.reinforcement-banner {
+    /* V4 Layout props */
+    position: absolute;
+    top: 38%;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20020;
+    pointer-events: none;
+    
+    /* V4 Background/Border Style */
+    background: linear-gradient(90deg, transparent, var(--combo-color), transparent);
+    border-top: 2px solid var(--combo-color);
+    border-bottom: 2px solid var(--combo-color);
+    
+    animation: banner-wipe 0.85s ease-out forwards;
+    transform-origin: center;
+    will-change: transform;
+}
+
+@keyframes combo-pop {
+    0% { transform: translate(-50%, -20%) scale(0.5); opacity: 0; }
+    40% { transform: translate(-50%, -60%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -80%) scale(1); opacity: 0; }
+}
+
+@keyframes banner-wipe {
+    0% { transform: scaleX(0); opacity: 0; }
+    20% { transform: scaleX(1); opacity: 1; }
+    80% { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(1.2); opacity: 0; }
+}
+
+/* SHAKE ANIMATIONS CHAINED */
+.combo-popup.animate.shake-1 { 
+    animation: combo-pop 980ms cubic-bezier(0.175,0.885,0.32,1.275) forwards, shake-1 100ms ease-in-out infinite; 
+}
+.combo-popup.animate.shake-2 { 
+    animation: combo-pop 980ms cubic-bezier(0.175,0.885,0.32,1.275) forwards, shake-2 120ms ease-in-out infinite; 
+}
+.combo-popup.animate.shake-3 { 
+    animation: combo-pop 980ms cubic-bezier(0.175,0.885,0.32,1.275) forwards, shake-3 150ms ease-in-out infinite; 
+}
+
+@keyframes shake-1 { 
+    0%, 100% { margin-left: 0; margin-top: 0; } 
+    25% { margin-left: -2px; margin-top: 1px; } 
+    75% { margin-left: 2px; margin-top: -1px; } 
+}
+
+@keyframes shake-2 { 
+    0%, 100% { margin-left: 0; margin-top: 0; } 
+    25% { margin-left: -3px; margin-top: 2px; } 
+    75% { margin-left: 3px; margin-top: -2px; } 
+}
+
+@keyframes shake-3 { 
+    0%, 100% { margin-left: 0; margin-top: 0; } 
+    25% { margin-left: -4px; margin-top: 3px; } 
+    75% { margin-left: 4px; margin-top: -3px; } 
+}
+
+/* --- ADDED MISSING KEYFRAMES FOR TRAVELER ANIMATION --- */
+@keyframes hex-breathe {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(var(--hex-scale)); }
+}
+
+@keyframes ring-ripple {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: var(--ring-alpha); }
+    100% { transform: translate(-50%, -50%) scale(var(--ring-scale)); opacity: 0; }
+}
+
+/* =====================================================
+   FEATURE TRANSPLANT: GPU FLASH / STAGE LIGHTING (1:1)
+   ===================================================== */
+
+/* 1. Ensure the Grid Wrapper creates a stacking context */
+#grid-wrapper {
+    position: relative;
+    z-index: 5; /* Matched base code z-index */
+}
+
+/* 2. The Lighting Layers (Hidden by default) */
 #grid-wrapper::after, #grid-wrapper::before {
     content: '';
     position: absolute;
-    border-radius: var(--rad-grid);
+    border-radius: 12px; /* Matches source --rad-grid */
     pointer-events: none;
     opacity: 0; 
+    will-change: opacity;
 }
 
+/* Layer A: The Spotlight (Screen Blend Mode for luminosity) */
 #grid-wrapper::after {
     inset: 0;
     z-index: 5;
@@ -933,6 +1175,7 @@ body:has(.combo-popup[style*="00ffcc"]) {
     mix-blend-mode: screen; 
 }
 
+/* Layer B: The Outer Glow (Ambiance) */
 #grid-wrapper::before {
     inset: -4px; 
     z-index: -1;
@@ -940,191 +1183,158 @@ body:has(.combo-popup[style*="00ffcc"]) {
     box-shadow: 0 0 20px var(--flash-color, transparent);
 }
 
-@keyframes gpu-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+/* 3. The Flash Animation */
+@keyframes gpu-flash { 
+    0% { opacity: 1; } 
+    100% { opacity: 0; } 
+}
 
-/* TRIGGERS */
-#grid-wrapper:has(.combo-popup[style*="00d2d3"]) { --flash-color: #00d2d3; }
-#grid-wrapper:has(.combo-popup[style*="00d2d3"])::after, #grid-wrapper:has(.combo-popup[style*="00d2d3"])::before { animation: gpu-flash 0.5s ease-out forwards; }
+/* 4. THE TRIGGER LOGIC (CSS :has() Selector) 
+   The CSS watches for a hidden element with a specific hex code 
+   and fires the animation in the matching color.
+*/
 
-#grid-wrapper:has(.combo-popup[style*="ff9ff3"]) { --flash-color: #ff9ff3; }
-#grid-wrapper:has(.combo-popup[style*="ff9ff3"])::after, #grid-wrapper:has(.combo-popup[style*="ff9ff3"])::before { animation: gpu-flash 0.5s ease-out forwards; }
+/* Default / White */
+#grid-wrapper:has(.flash-trigger) { --flash-color: #fff; }
 
-#grid-wrapper:has(.combo-popup[style*="54a0ff"]) { --flash-color: #54a0ff; }
-#grid-wrapper:has(.combo-popup[style*="54a0ff"])::after, #grid-wrapper:has(.combo-popup[style*="54a0ff"])::before { animation: gpu-flash 0.5s ease-out forwards; }
+/* Cyan (Combo 2) */
+#grid-wrapper:has(.flash-trigger[style*="00d2d3"]) { --flash-color: #00d2d3; }
+#grid-wrapper:has(.flash-trigger[style*="00d2d3"])::after, 
+#grid-wrapper:has(.flash-trigger[style*="00d2d3"])::before { 
+    animation: gpu-flash 0.5s ease-out forwards; 
+}
 
-#grid-wrapper:has(.combo-popup[style*="feca57"]),
-#grid-wrapper:has(.combo-popup[style*="5f27cd"]),
-#grid-wrapper:has(.combo-popup[style*="ff6b6b"]),
-#grid-wrapper:has(.combo-popup[style*="f1c40f"]),
-#grid-wrapper:has(.combo-popup[style*="00ffcc"]) { --flash-color: #fff; }
+/* Pink (Combo 5) */
+#grid-wrapper:has(.flash-trigger[style*="ff9ff3"]) { --flash-color: #ff9ff3; }
+#grid-wrapper:has(.flash-trigger[style*="ff9ff3"])::after, 
+#grid-wrapper:has(.flash-trigger[style*="ff9ff3"])::before { 
+    animation: gpu-flash 0.5s ease-out forwards; 
+}
 
-#grid-wrapper:has(.combo-popup[style*="feca57"]) { --flash-color: #feca57; }
-#grid-wrapper:has(.combo-popup[style*="5f27cd"]) { --flash-color: #5f27cd; }
-#grid-wrapper:has(.combo-popup[style*="ff6b6b"]) { --flash-color: #ff6b6b; }
-#grid-wrapper:has(.combo-popup[style*="f1c40f"]) { --flash-color: #f1c40f; }
-#grid-wrapper:has(.combo-popup[style*="00ffcc"]) { --flash-color: #00ffcc; }
+/* Blue (Combo 8) */
+#grid-wrapper:has(.flash-trigger[style*="54a0ff"]) { --flash-color: #54a0ff; }
+#grid-wrapper:has(.flash-trigger[style*="54a0ff"])::after, 
+#grid-wrapper:has(.flash-trigger[style*="54a0ff"])::before { 
+    animation: gpu-flash 0.5s ease-out forwards; 
+}
 
-#grid-wrapper:has(.combo-popup[style*="feca57"])::after, #grid-wrapper:has(.combo-popup[style*="feca57"])::before,
-#grid-wrapper:has(.combo-popup[style*="5f27cd"])::after, #grid-wrapper:has(.combo-popup[style*="5f27cd"])::before,
-#grid-wrapper:has(.combo-popup[style*="ff6b6b"])::after, #grid-wrapper:has(.combo-popup[style*="ff6b6b"])::before,
-#grid-wrapper:has(.combo-popup[style*="f1c40f"])::after, #grid-wrapper:has(.combo-popup[style*="f1c40f"])::before,
-#grid-wrapper:has(.combo-popup[style*="00ffcc"])::after, #grid-wrapper:has(.combo-popup[style*="00ffcc"])::before {
+/* HIGH TIERS (Gold, Purple, Red, Yellow, Mint) */
+#grid-wrapper:has(.flash-trigger[style*="feca57"]) { --flash-color: #feca57; }
+#grid-wrapper:has(.flash-trigger[style*="5f27cd"]) { --flash-color: #5f27cd; }
+#grid-wrapper:has(.flash-trigger[style*="ff6b6b"]) { --flash-color: #ff6b6b; }
+#grid-wrapper:has(.flash-trigger[style*="f1c40f"]) { --flash-color: #f1c40f; }
+#grid-wrapper:has(.flash-trigger[style*="00ffcc"]) { --flash-color: #00ffcc; }
+
+/* Shared Trigger for High Tiers */
+#grid-wrapper:has(.flash-trigger[style*="feca57"])::after, #grid-wrapper:has(.flash-trigger[style*="feca57"])::before,
+#grid-wrapper:has(.flash-trigger[style*="5f27cd"])::after, #grid-wrapper:has(.flash-trigger[style*="5f27cd"])::before,
+#grid-wrapper:has(.flash-trigger[style*="ff6b6b"])::after, #grid-wrapper:has(.flash-trigger[style*="ff6b6b"])::before,
+#grid-wrapper:has(.flash-trigger[style*="f1c40f"])::after, #grid-wrapper:has(.flash-trigger[style*="f1c40f"])::before,
+#grid-wrapper:has(.flash-trigger[style*="00ffcc"])::after, #grid-wrapper:has(.flash-trigger[style*="00ffcc"])::before {
     animation: gpu-flash 0.5s ease-out forwards;
 }
 
-/* =====================================================
-   NEW RECORD OVERLAY (PURPLE THEME)
-   ===================================================== */
+/* ============================================
+   NEW: GAME OVER & NO SPACE ANIMATIONS
+   ============================================ */
 
-#new-record-overlay {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 6000; /* Higher than standard Game Over */
-    
-    /* Deep Royal Purple Gradient */
-    background: linear-gradient(180deg, #8E2DE2 0%, #4A00E0 100%);
-    
-    display: none;
-    opacity: 0;
-    
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-#new-record-overlay:not(.hidden) {
-    display: flex;
-    animation: overlayFadeIn 0.5s ease forwards;
-    animation-delay: 0.55s; 
-}
-
-/* --- Content Wrapper --- */
-.nr-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
+/* The Filling Block Visual */
+.visual-fill {
+    background: var(--block-color);
+    border-radius: 6px; /* Matches rad-block */
+    box-shadow: 
+        inset 3px 3px 0px 0px rgba(255,255,255,0.4),
+        inset -3px -3px 0px 0px rgba(0,0,0,0.2);
+    animation: fill-pop 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    position: relative;
     z-index: 10;
 }
 
-/* --- 1. The Crown (Pop & Float) --- */
-.nr-crown-wrapper {
-    width: 140px;
-    height: 100px;
-    margin-bottom: 20px; /* Slight adjustment */
-    opacity: 0; 
+@keyframes fill-pop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
 }
 
-#new-record-overlay:not(.hidden) .nr-crown-wrapper {
-    animation: 
-        crown-pop-enter 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.5) forwards,
-        crown-float-idle 3s ease-in-out infinite 0.6s;
-    animation-delay: 0.7s, 1.3s;
+/* Dimmed Grid State */
+.state-dimmed {
+    filter: brightness(0.8) !important;
+    transition: filter 0.4s ease;
 }
 
-.nr-crown-svg {
-    width: 100%; height: 100%;
-    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
-}
-
-@keyframes crown-pop-enter {
-    0% { transform: scale(0) translateY(50px); opacity: 0; }
-    60% { transform: scale(1.2) translateY(0); opacity: 1; }
-    100% { transform: scale(1) translateY(0); opacity: 1; }
-}
-
-@keyframes crown-float-idle {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
-/* --- 2. "Best Score!" Title (MATCHING STANDARD GO) --- */
-.nr-title-container {
-    overflow: hidden; 
-    margin-bottom: 30px;
-}
-
-.nr-title {
-    /* MATCHING STANDARD GAME OVER TITLE (#gameOverTitle) */
-    font-family: 'Verdana', 'Segoe UI', sans-serif;
-    font-size: 2.5rem; 
-    font-weight: 800; 
-    color: #FFD700; /* Gold to stand out on purple */
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 0 4px 0 rgba(0,0,0,0.2);
-    margin: 0;
-    line-height: 1;
-    
-    opacity: 0;
-    transform: translateX(-50px);
-}
-
-#new-record-overlay:not(.hidden) .nr-title {
-    animation: slide-in-snap 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-    animation-delay: 1.0s;
-}
-
-@keyframes slide-in-snap {
-    0% { opacity: 0; transform: translateX(-50px); }
-    100% { opacity: 1; transform: translateX(0); }
-}
-
-/* --- 3. Score Values (MATCHING STANDARD GO) --- */
-.nr-score-label {
-    /* MATCHING STANDARD LABEL (.go-label) */
-    font-family: 'Verdana', sans-serif;
-    font-size: 1rem;
-    font-weight: 600; 
-    color: rgba(255,255,255,0.8);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin: 0 0 5px 0;
-    opacity: 0;
-    animation: simple-fade 0.5s ease forwards 1.2s;
-}
-
-#nr-score-val {
-    /* MATCHING STANDARD SCORE (#go-score-val) */
-    font-family: 'Verdana', sans-serif;
-    font-size: 3.5rem; 
-    font-weight: 700; 
+/* "No Space Left" Toast */
+#no-space-message {
+    width: 100%;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 900;
+    font-size: 28px;
     color: #ffffff;
-    margin: 0 0 40px 0;
-    text-shadow: 0 4px 15px rgba(255,255,255,0.3);
-}
-
-@keyframes simple-fade { to { opacity: 1; } }
-
-/* --- 4. Premium Gold Button --- */
-.nr-gold-btn {
-    background: linear-gradient(180deg, #FDB931 0%, #F57F17 100%);
-    box-shadow: 0 5px 0 #E65100, 0 20px 30px rgba(0,0,0,0.3);
-}
-
-.nr-gold-btn:active {
-    box-shadow: 0 0 0 #E65100;
-}
-
-/* --- 5. Confetti Particles --- */
-#confetti-container {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1;
+    bottom: 120px; 
+    left: 0;
+    z-index: 100;
+    background: rgba(26, 29, 36, 0.95);
+    border-radius: 12px;
+    animation: msg-slide-up 0.3s ease-out forwards;
 }
 
-.confetti-piece {
-    position: absolute;
-    width: 10px; height: 10px;
-    background: #fff;
-    opacity: 0;
+@keyframes msg-slide-up {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
-@keyframes confetti-fall {
-    0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
-    25% { opacity: 1; }
-    100% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)); opacity: 0; }
+#no-space-message.hidden { display: none; }
+
+/* =========================================================
+   MOBILE RESPONSIVENESS (TEXT & OVERLAY FIXES)
+   ========================================================= */
+
+@media (max-width: 600px) {
+    
+    /* 1. STACK TEXT VERTICALLY */
+    /* Instead of "LEVEL FAILED" side-by-side, we stack them 
+       so they fit comfortably on narrow screens */
+    .failure-message, 
+    .victory-message {
+        flex-direction: column; 
+        gap: 0px !important; /* Remove horizontal gap */
+        bottom: 52% !important; /* Slight vertical adjustment */
+    }
+
+    /* 2. ADJUST FONT SIZES FOR MOBILE */
+    
+    /* "LEVEL" - Smaller label */
+    .word-level, 
+    .word-level-vic {
+        font-size: 20px !important; /* Reduced from 30px */
+        margin-bottom: 5px; /* Add small space between lines */
+    }
+
+    /* "FAILED" / "CLEARED" - Big impact text */
+    .word-failed, 
+    .word-cleared-vic {
+        font-size: 42px !important; /* Reduced from 48px to fit width */
+        line-height: 1.1; /* Tighter line height */
+    }
+
+    /* 3. ENSURE BUTTONS FIT */
+    .game-over-buttons {
+        gap: 15px !important; /* Slightly tighter gap between buttons */
+    }
+    
+    .action-btn {
+        width: 60px !important; /* Slightly smaller buttons */
+        height: 60px !important;
+    }
+    
+    .action-btn svg {
+        width: 30px !important;
+        height: 30px !important;
+    }
 }

@@ -3,120 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>BLOXPLODE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,900&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+    <title>Grid Puzzle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,900&family=Rubik+Mono+One&family=Nunito:wght@800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="game-column" id="game-view">
-        <div class="top-bar">
-            <div class="score-box">
-                <div class="label">SCORE</div>
-                <div id="score">0</div>
-            </div>
-            <div class="score-box">
-                <div class="label">BEST</div>
-                <div id="best-score">0</div>
-            </div>
-        </div>
         
-        <div id="grid-wrapper">
-            <div id="grid"></div>
+        <div id="progress-system">
             
-            <div id="new-best-overlay" class="hidden">
-                <div class="celebration-content">
-                    <div class="crown-container">
-                        <div class="crown-svg"></div>
-                    </div>
-                    <div class="best-banner">
-                        <div class="ribbon-tail-l"></div>
-                        <div class="ribbon-center">NEW BEST</div>
-                        <div class="ribbon-tail-r"></div>
-                    </div>
+            <div id="progress-tunnel">
+                <div id="progress-trace" style="width: 0%;"></div>
+                
+                <div id="progress-traveler" style="left: 0%;">
+                    <span id="score-val">0</span>
+                    <div class="impact-fx"></div> 
                 </div>
             </div>
 
+            <div id="progress-target">
+                <span id="target-val">2500</span>
+            </div>
+
+        </div>
+
+        <div id="grid-wrapper">
+            <div id="grid"></div>
+            <div class="clear-fx-layer"></div>
         </div>
         
         <div id="no-space-message" class="hidden">No Space Left</div>
-
+        
         <div id="tray">
             <div class="tray-slot" id="slot-0"></div>
             <div class="tray-slot" id="slot-1"></div>
             <div class="tray-slot" id="slot-2"></div>
         </div>
+    </div>
 
-        <div id="game-over-overlay" class="hidden">
-            <div class="game-over-content">
-                <h2 id="gameOverTitle">
-                    <span class="highlight-char">G</span>AME 
-                    <span class="highlight-char">O</span>VER
-                </h2>
-                
-                <div class="go-score-container">
-                    <p class="go-label">SCORE</p>
-                    <p id="go-score-val">0</p>
-                </div>
-
-                <div class="go-best-container">
-                    <p class="go-label">BEST SCORE</p>
-                    <p id="go-best-val">0</p>
-                </div>
-
-                <button id="restart-overlay-btn" class="go-play-btn" onclick="fullReset()">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-12l5 4-5 4V8z"/>
-                    </svg>
-                </button>
+    <div id="game-over-overlay" class="hidden">
+        <div class="failure-message">
+            <span class="word-level">LEVEL</span>
+            <span class="word-failed">FAILED!</span>
+        </div>
+        
+        <div class="game-over-buttons" id="go-buttons">
+            <div class="action-btn dormant" id="btn-home">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            </div>
+            <div class="action-btn" id="btn-retry">
+                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm-8 8c0-1.01.25-1.97.7-2.8L3.24 7.74C2.46 8.97 2 10.43 2 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6z"/></svg>
+            </div>
+            <div class="action-btn dormant" id="btn-next">
+                <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
             </div>
         </div>
-
-        <div id="new-record-overlay" class="hidden">
-            <div id="confetti-container"></div>
-            
-            <div class="nr-content">
-                <div class="nr-crown-wrapper">
-                    <svg class="nr-crown-svg" viewBox="0 0 100 80" preserveAspectRatio="xMidYMid meet">
-                        <defs>
-                            <linearGradient id="crownGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
-                                <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
-                            </linearGradient>
-                        </defs>
-                        <path fill="url(#crownGrad)" stroke="#B8860B" stroke-width="1.5" 
-                              d="M 50 10 
-                                 C 50 10 35 40 30 40 
-                                 C 25 40 10 25 10 25 
-                                 C 10 25 15 55 18 65 
-                                 L 82 65 
-                                 C 85 55 90 25 90 25 
-                                 C 90 25 75 40 70 40 
-                                 C 65 40 50 10 50 10 Z" />
-                        <circle cx="10" cy="25" r="5" fill="#FFD700" stroke="#B8860B"/>
-                        <circle cx="50" cy="10" r="7" fill="#FFD700" stroke="#B8860B"/>
-                        <circle cx="90" cy="25" r="5" fill="#FFD700" stroke="#B8860B"/>
-                    </svg>
-                </div>
-
-                <div class="nr-title-container">
-                    <h2 class="nr-title">Best Score!</h2>
-                </div>
-
-                <div class="nr-score-label">Score</div>
-                <div id="nr-score-val">0</div>
-
-                <button id="nr-restart-btn" class="go-play-btn nr-gold-btn" onclick="fullReset()">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-12l5 4-5 4V8z"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-
     </div>
     
-    <script src="script_v4.js"></script>>
-    <script src="default-skin_v4.js"></script>
+    <div id="victory-dim" class="hidden"></div>
+    <div id="victory-fireworks"></div>
+    
+    <div id="victory-ui-layer" class="hidden">
+        
+        <div class="victory-message">
+            <span class="word-level-vic">LEVEL</span>
+            <span class="word-cleared-vic">CLEARED!</span>
+        </div>
+
+        <div class="game-over-buttons victory-set" id="victory-buttons">
+            <div class="action-btn dormant" id="vic-btn-home">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            </div>
+            
+            <div class="action-btn dormant" id="vic-btn-retry">
+                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm-8 8c0-1.01.25-1.97.7-2.8L3.24 7.74C2.46 8.97 2 10.43 2 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6z"/></svg>
+            </div>
+            
+            <div class="action-btn" id="vic-btn-next">
+                <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+    <script src="default-skin.js"></script>
 </body>
 </html>
