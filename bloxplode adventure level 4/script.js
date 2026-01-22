@@ -19,25 +19,50 @@ const Boss = {
 };
 
 // ============================================
-// AUDIO SYSTEM (LOGIC INTERFACE)
+// AUDIO SYSTEM (OPTIMIZED: PRELOAD + VISIBILITY)
 // ============================================
 const SoundSystem = {
     ctx: null,
     buffers: {},
     isMuted: false,
     heartbeatTimer: null,
-    bgmNode: null,   
-    bgmGain: null,   
+    bgmNode: null,
+    bgmGain: null,
 
+    // 1. Initialize Context & Start Loading Immediately
     init() {
         if (!this.ctx) {
+            // Create context immediately (it will likely be 'suspended' by browser policy)
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AudioContext();
+            
+            // Start fetching files right away so they are ready when user taps
             this.loadSounds();
-        } else if (this.ctx.state === 'suspended') {
+        }
+    },
+
+    // 2. Unlock Audio on User Interaction (Instant Start)
+    unlock() {
+        if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume().then(() => {
                 this.playMusic('bgm');
             });
+        } else if (this.ctx && this.ctx.state === 'running' && !this.bgmNode) {
+            // Fallback: If context was already running but music wasn't playing
+            this.playMusic('bgm');
+        }
+    },
+
+    // 3. Handle Tab Switching / Minimizing
+    handleVisibility() {
+        if (!this.ctx) return;
+        
+        if (document.hidden) {
+            // User left the tab/app -> Mute/Suspend
+            this.ctx.suspend(); 
+        } else {
+            // User returned -> Resume
+            this.ctx.resume();
         }
     },
 
@@ -65,47 +90,57 @@ const SoundSystem = {
             'combo_20': 'sounds/godlike.wav'
         };
 
-        for (const [name, url] of Object.entries(fileNames)) {
+        const promises = Object.entries(fileNames).map(async ([name, url]) => {
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
                 this.buffers[name] = audioBuffer;
-                console.log(`✅ Loaded: ${name}`);
+                // console.log(`✅ Loaded: ${name}`); // Comment out to reduce logs
             } catch (error) {
                 console.error(`❌ FAILED loading ${url}`);
             }
-        }
+        });
 
-        if (this.ctx) {
-            this.playMusic('bgm');
-        }
+        // Wait for all sounds to load
+        await Promise.all(promises);
+        console.log("🎵 All Audio Assets Ready");
     },
 
     play(name, pitch = 1.0, volume = 1.0) {
         if (this.isMuted || !this.ctx || !this.buffers[name]) return;
+        
+        // Safety: Ensure context is running (sometimes needed on older devices)
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
         const source = this.ctx.createBufferSource();
         source.buffer = this.buffers[name];
         if (pitch !== 1.0) source.playbackRate.value = pitch;
+        
         const gainNode = this.ctx.createGain();
         gainNode.gain.value = volume;
+        
         source.connect(gainNode);
         gainNode.connect(this.ctx.destination);
         source.start(0);
     },
 
     playMusic(name) {
-        if (this.bgmNode) return;
+        if (this.bgmNode) return; // Already playing
         if (this.isMuted || !this.ctx || !this.buffers[name]) return;
+
         const source = this.ctx.createBufferSource();
         source.buffer = this.buffers[name];
         source.loop = true; 
+        
         const gainNode = this.ctx.createGain();
         gainNode.gain.value = 0.18; 
+        
         source.connect(gainNode);
         gainNode.connect(this.ctx.destination);
         source.start(0);
+        
         this.bgmNode = source;
         this.bgmGain = gainNode;
     },
@@ -129,26 +164,34 @@ const SoundSystem = {
     }
 };
 
+// --- INITIALIZATION LISTENERS ---
+
+// 1. Start loading immediately (don't wait for click)
+SoundSystem.init();
+
+// 2. Unlock/Resume on first interaction (Instant Sound)
+window.addEventListener('pointerdown', () => SoundSystem.unlock(), { once: true });
+
+// 3. Stop audio when app is backgrounded/closed
+document.addEventListener('visibilitychange', () => SoundSystem.handleVisibility());
+
 window.SoundSystem = SoundSystem;
-window.addEventListener('pointerdown', () => SoundSystem.init(), { once: true });
 
 // ==========================================
 // 2. ADVENTURE MODE CONFIGURATION
 // ==========================================
-// UPDATED: Now includes ID 4 (Red) in the map layout
 const LEVEL_1_MAP = [
+    1, 1, 2, 0, 0, 3, 1, 1,
+    1, 1, 3, 0, 0, 2, 1, 1,
+    1, 1, 2, 0, 0, 3, 1, 1,  
     0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  
-    0, 0, 0, 0, 0, 0, 0, 0, // Added 4 (Red)
-    1, 2, 3, 0, 0, 3, 4, 1, // Added 4 (Red)
-    1, 3, 4, 1, 0, 2, 3, 1,
-    1, 4, 2, 0, 2, 4, 1, 1,
-    1, 1, 0, 1, 1, 1, 1, 1
+    0, 0, 0, 0, 0, 0, 0, 0, 
+    1, 1, 3, 0, 0, 2, 1, 1,
+    1, 1, 2, 0, 0, 3, 1, 1,
+    1, 1, 3, 0, 0, 2, 1, 1
 ];
 
-// UPDATED: Added red goal
-let levelGoals = { gold: 0, purple: 0, red: 0 };
+let levelGoals = { gold: 0, purple: 0 };
 
 // ==========================================
 // 3. CORE VARIABLES & SHAPES
@@ -168,22 +211,25 @@ const TOUCH_LIFT_AMOUNT = 100;
 window.gameScale = 1;
 window.gameEnded = false; 
 
-// UPDATED: Sunset Orange Hex Code
-const PINK_COLOR = '#FF9F43';
+// --- LEVEL START SEQUENCE (SETUP) ---
+window.inputLocked = false; 
+
+// === REVERTED TO NEON GREEN BASE ===
+const NEON_GREEN = '#39FF14'; 
 
 const SHAPES = {
-    DOT:    { data: [[0,0]], color: PINK_COLOR },
-    I2:     { data: [[0,0],[1,0]], color: PINK_COLOR },
-    I3:     { data: [[0,0],[1,0],[2,0]], color: PINK_COLOR },
-    I4:     { data: [[0,0],[1,0],[2,0],[3,0]], color: PINK_COLOR },
-    O2:     { data: [[0,0],[1,0],[0,1],[1,1]], color: PINK_COLOR },
-    T:      { data: [[0,1],[1,0],[1,1],[2,1]], color: PINK_COLOR },
-    PLUS:   { data: [[1,0],[0,1],[1,1],[2,1],[1,2]], color: PINK_COLOR },
-    I2_V:   { data: [[0,0],[0,1]], color: PINK_COLOR },
-    I3_V:   { data: [[0,0],[0,1],[0,2]], color: PINK_COLOR },
-    CORNER: { data: [[0,0],[1,0],[0,1]], color: PINK_COLOR },
-    L_LEFT: { data: [[0,0],[0,1],[0,2],[1,2]], color: PINK_COLOR },
-    SKEW:   { data: [[1,0],[2,0],[0,1],[1,1]], color: PINK_COLOR }
+    DOT:    { data: [[0,0]], color: NEON_GREEN },
+    I2:     { data: [[0,0],[1,0]], color: NEON_GREEN },
+    I3:     { data: [[0,0],[1,0],[2,0]], color: NEON_GREEN },
+    I4:     { data: [[0,0],[1,0],[2,0],[3,0]], color: NEON_GREEN },
+    O2:     { data: [[0,0],[1,0],[0,1],[1,1]], color: NEON_GREEN },
+    T:      { data: [[0,1],[1,0],[1,1],[2,1]], color: NEON_GREEN },
+    PLUS:   { data: [[1,0],[0,1],[1,1],[2,1],[1,2]], color: NEON_GREEN },
+    I2_V:   { data: [[0,0],[0,1]], color: NEON_GREEN },
+    I3_V:   { data: [[0,0],[0,1],[0,2]], color: NEON_GREEN },
+    CORNER: { data: [[0,0],[1,0],[0,1]], color: NEON_GREEN },
+    L_LEFT: { data: [[0,0],[0,1],[0,2],[1,2]], color: NEON_GREEN },
+    SKEW:   { data: [[1,0],[2,0],[0,1],[1,1]], color: NEON_GREEN }
 };
 
 const SHAPE_TIERS_EXPANDED = {
@@ -206,19 +252,16 @@ function resizeGame() {
     gameCol.style.transform = `scale(${scale})`;
 }
 
-// UPDATED: Handle red count UI
 function updateGoalUI() {
     const gEl = document.getElementById('gold-count');
     const pEl = document.getElementById('purple-count');
-    const rEl = document.getElementById('red-count'); // NEW
     if(gEl) gEl.textContent = levelGoals.gold;
     if(pEl) pEl.textContent = levelGoals.purple;
-    if(rEl) rEl.textContent = levelGoals.red; // NEW
 }
 
 function loadLevel() {
-    // UPDATED: Goals for 3 gem types
-    levelGoals = { gold: 8, purple: 8, red: 8 };
+    // Explicit Objectives (Block Blast Style)
+    levelGoals = { gold: 12, purple: 12 };
     
     gridState = [...LEVEL_1_MAP]; 
 
@@ -232,8 +275,6 @@ function loadLevel() {
             cell.classList.add('occupied', 'embedded-gold');
         } else if (val === 3) {
             cell.classList.add('occupied', 'embedded-purple');
-        } else if (val === 4) {
-            cell.classList.add('occupied', 'embedded-red'); // NEW
         }
     });
     updateGoalUI();
@@ -243,7 +284,11 @@ function init() {
     resizeGame();
     window.addEventListener('resize', resizeGame);
     window.addEventListener('orientationchange', resizeGame);
-    SoundSystem.stopHeartbeat(); 
+    
+    // Reset Audio
+    if (window.SoundSystem && window.SoundSystem.stopHeartbeat) {
+        SoundSystem.stopHeartbeat();
+    }
 
     grid.innerHTML = ""; cells = []; 
     for (let i = 0; i < 64; i++) {
@@ -256,6 +301,9 @@ function init() {
     // --- RESET MOVE COUNT ---
     moveCount = 0;
     
+    // --- NEW: LOCK INPUT & START SEQUENCE ---
+    window.inputLocked = true;
+    
     loadLevel(); 
     recentShapes = [];
     spawnTrayPieces();
@@ -265,6 +313,12 @@ function init() {
     const slots = document.querySelectorAll('.tray-slot');
     slots.forEach(slot => {
         slot.addEventListener('touchstart', (e) => { e.preventDefault(); }, { passive: false });
+    });
+
+    // TRIGGER VISUAL PIPE SEQUENCE (Banner)
+    VisualPipe.emit("start_sequence", { 
+        gold: levelGoals.gold, 
+        purple: levelGoals.purple 
     });
 }
 
@@ -304,20 +358,18 @@ function clearLines(lastRow, lastCol, placedColor) {
                 
                 if (gridState[idx] !== 0) {
                     
-                    // --- GEM LOGIC (UPDATED WITH RED) ---
-                    if (cellValue === 2 || cellValue === 3 || cellValue === 4) {
+                    // --- GEM LOGIC ---
+                    if (cellValue === 2 || cellValue === 3) {
                         // 1. Update Game State (Logic)
                         if (cellValue === 2) levelGoals.gold = Math.max(0, levelGoals.gold - 1);
                         if (cellValue === 3) levelGoals.purple = Math.max(0, levelGoals.purple - 1);
-                        if (cellValue === 4) levelGoals.red = Math.max(0, levelGoals.red - 1); // NEW
                         
                         // 2. Emit Visual Event
                         VisualPipe.emit("gem_flight", { 
                             sourceIdx: idx, 
                             gemType: cellValue,
                             newGold: levelGoals.gold,
-                            newPurple: levelGoals.purple,
-                            newRed: levelGoals.red // NEW
+                            newPurple: levelGoals.purple
                         });
                     }
                     
@@ -329,10 +381,9 @@ function clearLines(lastRow, lastCol, placedColor) {
         
         VisualPipe.emit("reset_cells", { indices: clearedIndices });
 
-        // --- VICTORY LOGIC (UPDATED WITH RED) ---
-        if (levelGoals.gold === 0 && levelGoals.purple === 0 && levelGoals.red === 0 && !window.gameEnded) {
+        // --- VICTORY LOGIC ---
+        if (levelGoals.gold === 0 && levelGoals.purple === 0 && !window.gameEnded) {
             window.gameEnded = true; 
-            // 400ms Hold + 400ms Flight + 50ms buffer = 850ms
             setTimeout(() => {
                 VisualPipe.emit("level_complete");
             }, 850);
@@ -417,19 +468,17 @@ function spawnTrayPieces() {
 
         const baseData = SHAPES[key].data;
         
-        // --- UPDATED GEM SPAWN LOGIC: SMART SPAWN + RAMP ---
+        // --- GEM SPAWN LOGIC ---
         const structure = baseData.map(([x, y]) => {
             let type = 1; 
             
-            // 1. Identify which gems are still NEEDED (UPDATED WITH RED)
+            // 1. Identify which gems are still NEEDED
             let neededGems = [];
             if (levelGoals.gold > 0) neededGems.push(2);
             if (levelGoals.purple > 0) neededGems.push(3);
-            if (levelGoals.red > 0) neededGems.push(4); // NEW
 
-            // 2. Only spawn a gem if (a) we need one, and (b) Logic hits our Dynamic Chance
+            // 2. Only spawn a gem if needed and chance hit
             if (neededGems.length > 0 && Math.random() < currentGemChance) {
-                // 3. Pick randomly from ONLY the needed types
                 const randomIndex = Math.floor(Math.random() * neededGems.length);
                 type = neededGems[randomIndex];
             }
@@ -462,7 +511,6 @@ function renderPiece(el, color, structureData) {
         block.className = "block";
         if (type === 2) block.classList.add("gem-gold");
         if (type === 3) block.classList.add("gem-purple");
-        if (type === 4) block.classList.add("gem-red"); // NEW
 
         block.style.left = ((x - minX) * trayBlockSize) + "px";
         block.style.top = ((y - minY) * trayBlockSize) + "px";
@@ -486,8 +534,8 @@ document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { pa
 document.addEventListener('touchstart', function(e) { if(e.target.closest('#tray')) e.preventDefault(); }, { passive: false });
 
 window.addEventListener('pointerdown', e => {
-    // Game Freeze Check
-    if (window.gameEnded) return;
+    // Game Freeze Check OR Input Lock Check
+    if (window.gameEnded || window.inputLocked) return;
 
     const slot = e.target.closest('.tray-slot');
     if (!slot || activeDrag) return;
@@ -522,7 +570,6 @@ window.addEventListener('pointerdown', e => {
         block.className = "block";
         if (type === 2) block.classList.add("gem-gold");
         if (type === 3) block.classList.add("gem-purple");
-        if (type === 4) block.classList.add("gem-red"); // NEW
         
         block.style.left = (x - minX) * (sz + gap) + "px";
         block.style.top = (y - minY) * (sz + gap) + "px";
@@ -836,7 +883,7 @@ if (retryBtn) retryBtn.onclick = fullReset;
 
 const nextBtn = document.getElementById("vic-btn-next");
 if (nextBtn) {
-    // Go to Level 5
+    // WINNER: Go to Level 5
     nextBtn.onclick = () => window.location.href = "../bloxplode adventure level 5/index.html";
 }
 
@@ -852,7 +899,6 @@ VisualPipe.on("piece_placed", ({ indices, color }) => {
             
             if (type === 2) cell.classList.add('embedded-gold');
             if (type === 3) cell.classList.add('embedded-purple');
-            if (type === 4) cell.classList.add('embedded-red'); // NEW
 
             setTimeout(() => { cell.classList.remove('placed-impact'); }, 200);
         });
@@ -945,4 +991,10 @@ VisualPipe.on("reset_cells", ({ indices }) => {
     });
 });
 
-init();
+// Wait for the browser to finish loading visuals before starting logic
+window.addEventListener('DOMContentLoaded', () => {
+    // A tiny safety delay to ensure default-skin.js is fully registered
+    setTimeout(() => {
+        init();
+    }, 10);
+});

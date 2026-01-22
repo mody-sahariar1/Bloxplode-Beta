@@ -1,5 +1,5 @@
 // ============================================
-// DEFAULT SKIN (VISUALS) - CLEANED
+// DEFAULT SKIN (VISUALS) - CLEANED & UPDATED
 // ============================================
 
 function triggerEternalHaptic(ms) {
@@ -43,7 +43,7 @@ function getComboAudioProfile(c) {
         profile.layerPitch = 1.00; profile.layerVol = 0.6; profile.layerDelay = 50; 
     }
     else if (c === 10 || c === 13 || c === 18) {
-        profile.layer = 'victory_chime'; // NOTE: This is the COMBO version. Flight version is deleted.
+        profile.layer = 'victory_chime'; 
         profile.layerPitch = (c === 18) ? 1.03 : 1.01; 
         profile.layerVol = 0.9; profile.layerDelay = 100; 
     }
@@ -160,8 +160,6 @@ VisualPipe.on("clear_feedback", ({ combo }) => {
         }, 700);
     }
 });
-
-// CLEANUP: Removed "score_float" listener
 
 // 4. Reset Cells
 VisualPipe.on("reset_cells", ({ indices }) => {
@@ -344,7 +342,6 @@ VisualPipe.on("gem_flight", ({ sourceIdx, gemType, newGold, newPurple }) => {
         }
 
         // --- 4. END: ONE COLLECT SOUND PER GEM ---
-        // This plays exactly when the gem hits the scoreboard
         if (window.SoundSystem) window.SoundSystem.play('gem_collect');
 
     }, 800); 
@@ -580,4 +577,237 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const nextBtn = document.getElementById("vic-btn-next");
     if (nextBtn) nextBtn.addEventListener('click', resetUI);
+});
+
+
+// ============================================
+// LEVEL START SEQUENCE (COMPLETE: SETUP -> GHOST -> FLIGHT -> CURTAIN -> IMPACT FX)
+// ============================================
+
+VisualPipe.on("start_sequence", ({ gold, purple }) => {
+    // 1. Get Elements
+    const overlay = document.getElementById('level-start-overlay');
+    const gemContainer = document.getElementById('start-gem-container');
+    const goldCountUI = document.getElementById('gold-count');
+    const purpleCountUI = document.getElementById('purple-count');
+    const banner = document.getElementById('start-banner');
+
+    // 2. Hide Top UI
+    if (goldCountUI) goldCountUI.classList.add('socket-empty');
+    if (purpleCountUI) purpleCountUI.classList.add('socket-empty');
+
+    // 3. Populate The Banner
+    let htmlContent = '';
+    if (gold > 0) {
+        htmlContent += `
+            <div class="start-gem-wrapper" id="start-gem-gold-wrapper">
+                <div class="gem-icon gem-gold"></div>
+                <span>${gold}</span>
+            </div>
+        `;
+    }
+    if (purple > 0) {
+        htmlContent += `
+            <div class="start-gem-wrapper" id="start-gem-purple-wrapper">
+                <div class="gem-icon gem-purple"></div>
+                <span>${purple}</span>
+            </div>
+        `;
+    }
+    if (gemContainer) gemContainer.innerHTML = htmlContent;
+
+    // 4. Play Entrance (Phase 1)
+    if (overlay) {
+        overlay.classList.remove('hidden');
+        overlay.style.opacity = '1';
+        overlay.style.backdropFilter = ''; 
+        overlay.style.webkitBackdropFilter = '';
+        
+        if (banner) {
+            banner.style.opacity = '1';
+            banner.style.animation = 'none';
+            banner.style.clipPath = '';
+            banner.style.webkitClipPath = '';
+            banner.offsetHeight; 
+            banner.style.animation = 'strip-enter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+        }
+    }
+
+    // 5. PHASE 2 (HOLD) -> PHASE 3 (GHOST SWAP)
+    setTimeout(() => {
+        const types = [];
+        if (gold > 0) types.push('gold');
+        if (purple > 0) types.push('purple');
+
+        // --- PHASE 3: GHOST CREATION ---
+        types.forEach(type => {
+            const sourceWrapper = document.getElementById(`start-gem-${type}-wrapper`);
+            const targetId = type === 'gold' ? 'gold-count' : 'purple-count';
+            const targetEl = document.getElementById(targetId);
+
+            if (sourceWrapper && targetEl) {
+                const sourceIcon = sourceWrapper.querySelector('.gem-icon');
+                const targetContainer = targetEl.parentElement; 
+                const targetIcon = targetContainer.querySelector('.gem-icon'); 
+
+                if (sourceIcon && targetIcon) {
+                    const sRect = sourceIcon.getBoundingClientRect();
+                    const tRect = targetIcon.getBoundingClientRect();
+
+                    const ghost = sourceIcon.cloneNode(true);
+                    ghost.className = `flying-gem-ghost gem-icon gem-${type}`;
+                    
+                    ghost.style.left = sRect.left + 'px';
+                    ghost.style.top = sRect.top + 'px';
+                    ghost.style.width = sRect.width + 'px';
+                    ghost.style.height = sRect.height + 'px';
+                    ghost.style.margin = '0'; 
+                    ghost.style.transform = 'scale(1.3)'; 
+                    
+                    ghost.dataset.targetX = tRect.left;
+                    ghost.dataset.targetY = tRect.top;
+                    ghost.dataset.targetW = tRect.width;
+                    ghost.dataset.targetH = tRect.height;
+
+                    document.body.appendChild(ghost);
+                    sourceIcon.style.opacity = '0'; 
+                }
+            }
+        });
+
+        // --- PHASE 4: FLIGHT & CURTAIN SPLIT (T+1250ms) ---
+        setTimeout(() => {
+            
+            // A. REMOVE BLUR
+            if (overlay) {
+                overlay.style.backdropFilter = 'none';
+                overlay.style.webkitBackdropFilter = 'none';
+            }
+
+            // B. Trigger Ghost Flight
+            const ghosts = document.querySelectorAll('.flying-gem-ghost');
+            ghosts.forEach(ghost => {
+                ghost.style.transition = 'all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                ghost.style.left = ghost.dataset.targetX + 'px';
+                ghost.style.top = ghost.dataset.targetY + 'px';
+                ghost.style.width = ghost.dataset.targetW + 'px';
+                ghost.style.height = ghost.dataset.targetH + 'px';
+                ghost.style.transform = 'scale(1)';
+            });
+
+            // C. CURTAIN SPLIT
+            if (banner) {
+                banner.style.animation = 'none'; 
+                const startPoly = 'polygon(0% 0%, 0% 100%, 50% 100%, 50% 0%, 50% 0%, 50% 100%, 100% 100%, 100% 0%)';
+                banner.style.clipPath = startPoly;
+                banner.style.webkitClipPath = startPoly;
+                
+                void banner.offsetWidth;
+
+                banner.style.transition = "clip-path 0.5s cubic-bezier(0.4, 0.0, 0.2, 1), -webkit-clip-path 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)";
+                
+                const splitState = 'polygon(0% 0%, 0% 100%, 0% 100%, 0% 0%, 100% 0%, 100% 100%, 100% 100%, 100% 0%)';
+                banner.style.clipPath = splitState;
+                banner.style.webkitClipPath = splitState;
+            }
+
+            // --- PHASE 5: THE IMPACT (T+2050ms) ---
+            setTimeout(() => {
+                // 1. Ghost Removal
+                ghosts.forEach(g => g.remove());
+
+                // 2. Identify Targets (Gold/Purple Containers)
+                const targets = [];
+                if (goldCountUI) {
+                    goldCountUI.classList.remove('socket-empty');
+                    targets.push(goldCountUI.parentElement); 
+                }
+                if (purpleCountUI) {
+                    purpleCountUI.classList.remove('socket-empty');
+                    targets.push(purpleCountUI.parentElement); 
+                }
+
+                // 3. FX: Flash, Shockwave & Shatter
+                targets.forEach(el => {
+                    // A. SUPER FLASH & SCALE
+                    el.style.transition = "transform 0.1s ease-out, filter 0.1s ease-out";
+                    el.style.transform = "scale(1.2)"; 
+                    el.style.filter = "brightness(2.0)"; 
+                    setTimeout(() => {
+                        el.style.transform = "scale(1)";
+                        el.style.filter = "brightness(1)";
+                    }, 200);
+
+                    // B. PARTICLE FX CENTER POINT
+                    const rect = el.getBoundingClientRect();
+                    const cx = rect.left + (rect.width / 2);
+                    const cy = rect.top + (rect.height / 2);
+
+                    // C. SHOCKWAVE RING
+                    const ring = document.createElement('div');
+                    ring.style.position = 'fixed';
+                    ring.style.left = cx + 'px';
+                    ring.style.top = cy + 'px';
+                    ring.style.width = '0px';
+                    ring.style.height = '0px';
+                    ring.style.border = '2px solid rgba(255, 255, 255, 0.9)';
+                    ring.style.borderRadius = '50%';
+                    ring.style.transform = 'translate(-50%, -50%)';
+                    ring.style.zIndex = '27000';
+                    ring.style.pointerEvents = 'none';
+                    ring.style.transition = 'all 0.4s ease-out';
+                    document.body.appendChild(ring);
+                    
+                    requestAnimationFrame(() => {
+                        ring.style.width = '120px';
+                        ring.style.height = '120px';
+                        ring.style.opacity = '0';
+                        ring.style.borderWidth = '0px';
+                    });
+                    setTimeout(() => ring.remove(), 400);
+
+                    // D. SHATTER SPARKS
+                    const sparkColors = ['#FFFFFF', '#9BFF6A', '#00FFFF']; 
+                    for (let i = 0; i < 20; i++) {
+                        const p = document.createElement("div");
+                        p.className = "flight-particle"; // Reuse base particle class
+                        
+                        const color = sparkColors[Math.floor(Math.random() * sparkColors.length)];
+                        p.style.backgroundColor = color;
+                        p.style.boxShadow = `0 0 4px ${color}`;
+                        p.style.width = (Math.random() * 3 + 2) + 'px';
+                        p.style.height = p.style.width;
+                        p.style.zIndex = '27000';
+                        p.style.left = cx + 'px';
+                        p.style.top = cy + 'px';
+                        p.style.transition = `transform ${Math.random() * 200 + 300}ms ease-out, opacity 300ms ease-out`;
+
+                        // Physics
+                        const angle = Math.random() * Math.PI * 2;
+                        const velocity = Math.random() * 60 + 30; // 30-90px travel
+                        const dx = Math.cos(angle) * velocity;
+                        const dy = Math.sin(angle) * velocity;
+
+                        document.body.appendChild(p);
+
+                        requestAnimationFrame(() => {
+                            p.style.transform = `translate(${dx}px, ${dy}px) scale(0)`;
+                            p.style.opacity = '0';
+                        });
+                        setTimeout(() => p.remove(), 500);
+                    }
+                });
+
+                // 4. Hide Overlay
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                }
+
+                // 5. Unlock Input
+                window.inputLocked = false;
+            }, 800); 
+
+        }, 50); // Buffer
+
+    }, 1200); 
 });

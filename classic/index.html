@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>BLOXPLODE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,900&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-column" id="game-view">
+        
+        <button id="settings-btn" onclick="toggleSettings()">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+                <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+            </svg>
+        </button>
+
+        <div class="top-bar">
+            <div class="score-box">
+                <div class="label">SCORE</div>
+                <div id="score">0</div>
+            </div>
+            <div class="score-box">
+                <div class="label">BEST</div>
+                <div id="best-score">0</div>
+            </div>
+        </div>
+        
+        <div id="grid-wrapper">
+            <div id="grid"></div>
+            
+            <div id="new-best-overlay" class="hidden">
+                <div class="celebration-content">
+                    <div class="crown-container">
+                        <div class="crown-svg"></div>
+                    </div>
+                    <div class="best-banner">
+                        <div class="ribbon-tail-l"></div>
+                        <div class="ribbon-center">NEW BEST</div>
+                        <div class="ribbon-tail-r"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="no-space-message" class="hidden">No Space Left</div>
+
+        <div id="tray">
+            <div class="tray-slot" id="slot-0"></div>
+            <div class="tray-slot" id="slot-1"></div>
+            <div class="tray-slot" id="slot-2"></div>
+        </div>
+
+        <div id="game-over-overlay" class="hidden">
+            <div class="game-over-content">
+                <h2 id="gameOverTitle">
+                    <span class="highlight-char">G</span>AME 
+                    <span class="highlight-char">O</span>VER
+                </h2>
+                
+                <div class="go-score-container">
+                    <p class="go-label">SCORE</p>
+                    <p id="go-score-val">0</p>
+                </div>
+
+                <div class="go-best-container">
+                    <p class="go-label">BEST SCORE</p>
+                    <p id="go-best-val">0</p>
+                </div>
+
+                <button id="restart-overlay-btn" class="go-play-btn" onclick="fullReset()">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-12l5 4-5 4V8z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="new-record-overlay" class="hidden">
+            <div id="confetti-container"></div>
+            
+            <div class="nr-content">
+                <div class="nr-crown-wrapper">
+                    <svg class="nr-crown-svg" viewBox="0 0 100 80" preserveAspectRatio="xMidYMid meet">
+                        <defs>
+                            <linearGradient id="crownGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path fill="url(#crownGrad)" stroke="#B8860B" stroke-width="1.5" 
+                              d="M 50 10 
+                                 C 50 10 35 40 30 40 
+                                 C 25 40 10 25 10 25 
+                                 C 10 25 15 55 18 65 
+                                 L 82 65 
+                                 C 85 55 90 25 90 25 
+                                 C 90 25 75 40 70 40 
+                                 C 65 40 50 10 50 10 Z" />
+                        <circle cx="10" cy="25" r="5" fill="#FFD700" stroke="#B8860B"/>
+                        <circle cx="50" cy="10" r="7" fill="#FFD700" stroke="#B8860B"/>
+                        <circle cx="90" cy="25" r="5" fill="#FFD700" stroke="#B8860B"/>
+                    </svg>
+                </div>
+
+                <div class="nr-title-container">
+                    <h2 class="nr-title">Best Score!</h2>
+                </div>
+
+                <div class="nr-score-label">Score</div>
+                <div id="nr-score-val">0</div>
+
+                <button id="nr-restart-btn" class="go-play-btn nr-gold-btn" onclick="fullReset()">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-2-12l5 4-5 4V8z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="settings-overlay" class="hidden">
+            <div class="settings-box">
+                <h2 class="settings-title">PAUSED</h2>
+                
+                <button class="settings-opt" onclick="fullReset(); toggleSettings()">
+                    ↻ RESTART
+                </button>
+                
+                <button class="settings-opt" onclick="toggleSettings()">
+                    ▶ RESUME
+                </button>
+                
+                <a href="../index.html" class="settings-opt exit-opt">
+                    ← EXIT TO HUB
+                </a>
+            </div>
+        </div>
+
+    </div>
+    
+    <script src="script_v4.js"></script>
+    <script src="default-skin_v4.js"></script>
+</body>
+</html>

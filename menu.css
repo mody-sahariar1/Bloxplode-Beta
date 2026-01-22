@@ -14,110 +14,134 @@ body {
 .menu-container {
     text-align: center;
     width: 100%;
-    max-width: 500px;
+    max-width: 400px; /* Kept narrow for mobile focus */
     padding: 20px;
+    /* Allow scrolling if 10 levels push content off screen on small phones */
+    max-height: 100vh;
+    overflow-y: auto;
 }
 
-/* --- TITLE STYLES --- */
+/* --- TITLE STYLES (Simplified) --- */
 .game-title {
     font-family: 'Rubik Mono One', sans-serif;
     color: #fff;
-    font-size: 42px;
-    line-height: 1.1;
-    margin-bottom: 50px;
-    text-shadow: 0 4px 0px #2c3e50, 0 8px 15px rgba(0,0,0,0.4);
-    transform: skew(-2deg);
+    font-size: 36px;
+    line-height: 1.2;
+    margin-bottom: 40px;
+    text-shadow: 0 4px 0px rgba(0,0,0,0.2);
+    font-style: normal;
 }
 
 .subtitle {
-    font-size: 24px;
-    color: #44FF44; /* Neon Green Accent */
-    text-shadow: 0 0 10px rgba(68, 255, 68, 0.5);
+    font-size: 18px;
+    color: #44FF44;
     display: block;
     margin-top: 5px;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 700;
+    letter-spacing: 2px;
 }
 
-/* --- GRID LAYOUT --- */
-.level-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* 2 Columns */
-    gap: 15px;
-    padding: 10px;
+/* --- UTILITY --- */
+.hidden {
+    display: none !important;
 }
 
-/* Make the last item span full width (since you have 5 levels) */
-.level-card:last-child {
-    grid-column: span 2;
-}
-
-/* --- BUTTON STYLES --- */
-.level-card {
+/* --- MAIN MENU BIG BUTTONS --- */
+.big-btn {
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
-    height: 100px;
-    background: rgba(26, 29, 36, 0.6); /* Dark Glass */
-    border: 2px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    height: 80px;
+    margin-bottom: 20px;
+    border: none;
     border-radius: 12px;
+    font-family: 'Kanit', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
     text-decoration: none;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    backdrop-filter: blur(5px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-    position: relative;
-    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-transform: uppercase;
+}
+
+.big-btn:active {
+    transform: translateY(4px);
+    box-shadow: none;
+}
+
+/* Classic Button Color */
+.classic-btn {
+    background: #FFD700; /* Gold */
+    color: #5a4a00; /* Darker text for contrast */
+}
+
+/* Adventure Button Color */
+.adventure-btn {
+    background: #4488FF; /* Blue */
+    color: #fff;
+}
+
+/* --- ADVENTURE GRID --- */
+.section-title {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+/* REMOVED the :last-child span rule so 10 items fit in a 2x5 grid perfectly */
+
+.level-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.level-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
 }
 
 .level-num {
-    font-size: 32px;
-    font-weight: 900;
-    color: #fff;
-    font-style: italic;
-    z-index: 2;
-}
-
-.level-label {
-    font-size: 14px;
-    color: rgba(255,255,255,0.6);
-    text-transform: uppercase;
+    font-size: 28px;
     font-weight: 700;
-    margin-top: -2px;
-    z-index: 2;
+    color: #fff;
+    font-style: normal;
 }
 
-/* --- HOVER EFFECTS & COLORS --- */
-
-/* Hover State */
-.level-card:hover {
-    transform: translateY(-5px) scale(1.02);
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #fff;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+/* --- BACK BUTTON --- */
+.back-btn {
+    background: transparent;
+    border: 2px solid rgba(255,255,255,0.3);
+    color: rgba(255,255,255,0.7);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
 }
 
-/* Button Active/Click State */
-.level-card:active {
-    transform: scale(0.95);
+.back-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: #fff;
 }
-
-/* Individual Colors for fun (matches your skins) */
-
-/* Level 1: Gold/Classic */
-.level-card:nth-child(1):hover { border-color: #FFD700; box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
-.level-card:nth-child(1):hover .level-num { color: #FFD700; }
-
-/* Level 2: Pink */
-.level-card:nth-child(2):hover { border-color: #FF66AA; box-shadow: 0 0 15px rgba(255, 102, 170, 0.6); }
-.level-card:nth-child(2):hover .level-num { color: #FF66AA; }
-
-/* Level 3: Cyan */
-.level-card:nth-child(3):hover { border-color: #00E5FF; box-shadow: 0 0 15px rgba(0, 229, 255, 0.6); }
-.level-card:nth-child(3):hover .level-num { color: #00E5FF; }
-
-/* Level 4: Green */
-.level-card:nth-child(4):hover { border-color: #44FF44; box-shadow: 0 0 15px rgba(68, 255, 68, 0.6); }
-.level-card:nth-child(4):hover .level-num { color: #44FF44; }
-
-/* Level 5: Red */
-.level-card:nth-child(5):hover { border-color: #FF3333; box-shadow: 0 0 15px rgba(255, 51, 51, 0.6); }
-.level-card:nth-child(5):hover .level-num { color: #FF3333; }

@@ -10,7 +10,6 @@ html, body {
     touch-action: none; 
     overscroll-behavior: none;
     margin: 0;
-    /* BACKGROUND REMAINS BLUE FOR CONTRAST */
     background: linear-gradient(180deg, #566CD5 0%, #3E50A4 100%);
 }
 
@@ -28,12 +27,12 @@ body {
     padding-top: 130px; 
 }
 
-/* --- ADVENTURE MODE: GOAL BAR --- */
+/* --- ADVENTURE MODE: GOAL BAR (UPDATED) --- */
 #goal-bar {
     position: absolute;
     top: 10px; 
     display: flex;
-    gap: 30px; /* Reduced gap slightly to fit 3 items */
+    gap: 50px; 
     z-index: 20;
     background: transparent;
     padding: 0;
@@ -47,14 +46,16 @@ body {
     align-items: center;
     gap: 2px; 
     line-height: 2.0; 
+    /* CHANGED: Replaced 'Kanit' with standard system fonts for a "normal" look */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 28px; 
     color: white;
+    /* CHANGED: Reduced weight from 900 to 700 (Standard Bold) */
     font-weight: 700;
     font-style: normal;
     text-shadow: 0 3px 0 rgba(0,0,0,0.3);
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative; 
+    position: relative; /* Context for tick */
 }
 
 .goal-item.pulse {
@@ -67,7 +68,7 @@ body {
     100% { transform: scale(1); }
 }
 
-/* --- SCOREBOARD GEM ICONS --- */
+/* --- SCOREBOARD GEM ICONS (REVERTED SIZE) --- */
 .gem-icon {
     width: 44px;
     height: 44px;
@@ -136,19 +137,19 @@ body {
    UNIFIED GEM VISUALS (GRID + UI + FLIGHT)
    ========================================================= */
 
-/* 1. Base Block Container - UPDATED TO ORANGE TINT (255, 159, 67) */
+/* 1. Base Block Container - UPDATED TO NEON GREEN TINT */
 .block.gem-gold, .cell.embedded-gold,
 .block.gem-purple, .cell.embedded-purple {
-    background-color: rgba(255, 159, 67, 0.25) !important; 
-    border: 1px solid rgba(255, 159, 67, 0.5);
-    box-shadow: inset 0 0 10px rgba(255, 159, 67, 0.2) !important;
+    /* Previous was rgba(255, 102, 170, 0.25) (Pink) -> Now Green */
+    background-color: rgba(68, 255, 68, 0.25) !important; 
+    border: 1px solid rgba(68, 255, 68, 0.5);
+    box-shadow: inset 0 0 10px rgba(68, 255, 68, 0.2) !important;
     border-radius: 6px;
 }
 
 /* 2. SHARED: The Socket */
 .block.gem-gold::before, .cell.embedded-gold::before,
-.block.gem-purple::before, .cell.embedded-purple::before,
-.block.gem-red::before, .cell.embedded-red::before {
+.block.gem-purple::before, .cell.embedded-purple::before {
     content: '';
     position: absolute;
     top: 50%; left: 50%;
@@ -161,7 +162,7 @@ body {
     box-shadow: inset 2px 2px 6px rgba(0,0,0,0.8), 0 0 2px rgba(255,255,255,0.1);
 }
 
-/* 3. SHARED: The Gold Gem */
+/* 3. SHARED: The Gold Gem (Pyramid Cut) */
 .block.gem-gold::after, .cell.embedded-gold::after,
 .gem-icon.gem-gold::after,
 .flying-gem.gem-gold::after {
@@ -190,7 +191,7 @@ body {
         0 4px 5px rgba(0,0,0,0.5);               
 }
 
-/* 4. SHARED: The Purple Gem */
+/* 4. SHARED: The Purple Gem (Pentagon Cut) */
 .block.gem-purple::after, .cell.embedded-purple::after,
 .gem-icon.gem-purple::after,
 .flying-gem.gem-purple::after {
@@ -218,66 +219,23 @@ body {
     filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.6));
 }
 
-/* =========================================================
-   NEW RED GEM (THE RUBY DIAMOND)
-   ========================================================= */
-
-/* 1. Base Container (Tinted Red) */
-.block.gem-red, .cell.embedded-red {
-    background-color: rgba(255, 23, 68, 0.25) !important; 
-    border: 1px solid rgba(255, 23, 68, 0.5);
-    box-shadow: inset 0 0 10px rgba(255, 23, 68, 0.2) !important;
-    border-radius: 6px;
-}
-
-/* 2. The Red Gem (Diamond Shape) */
-.block.gem-red::after, .cell.embedded-red::after,
-.gem-icon.gem-red::after,
-.flying-gem.gem-red::after {
-    content: '';
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 72%; height: 72%; 
-    z-index: 2;
-    
-    /* DIAMOND SHAPE */
-    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    
-    background: 
-        radial-gradient(circle at 35% 35%, rgba(255,255,255,0.8) 0%, transparent 25%), 
-        conic-gradient(
-            from 0deg at 50% 50%, 
-            #FF1744 0deg 90deg,    
-            #D50000 90deg 180deg,  
-            #FF5252 180deg 270deg, 
-            #B71C1C 270deg 360deg  
-        );
-
-    box-shadow: inset 1px 1px 0px rgba(255,255,255,0.4);
-    filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.6));
-}
-
 /* 5. UI ICON SPECIFIC OVERRIDES */
 .gem-icon.gem-gold::after,
-.gem-icon.gem-purple::after,
-.gem-icon.gem-red::after {
+.gem-icon.gem-purple::after {
     width: 100%; height: 100%; 
     filter: drop-shadow(0 4px 5px rgba(0,0,0,0.4));
 }
 
 /* 6. TRAY SPECIFIC OVERRIDES */
 #tray .block.gem-gold::before, 
-#tray .block.gem-purple::before,
-#tray .block.gem-red::before {
+#tray .block.gem-purple::before {
     width: 80%; height: 80%;
 }
 #tray .block.gem-gold::after { width: 65%; height: 65%; }
 #tray .block.gem-purple::after { width: 68%; height: 68%; }
-#tray .block.gem-red::after { width: 68%; height: 68%; }
 
 /* =========================================================
-   UPDATED: FLYING GEM & SPARKLE PARTICLES
+   UPDATED: FLYING GEM & SPARKLE PARTICLES (PIXIE DUST)
    ========================================================= */
 
 .flying-gem {
@@ -305,21 +263,19 @@ body {
         opacity 0.4s linear;
 }
 
-.flying-gem.gem-gold::after, 
-.flying-gem.gem-purple::after,
-.flying-gem.gem-red::after {
+.flying-gem.gem-gold::after, .flying-gem.gem-purple::after {
     width: 100%; height: 100%; 
     box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
 }
 .flying-gem::before { display: none; }
 
-/* --- SPARKLE DUST --- */
+/* --- SPARKLE DUST (PURE WHITE + GLOW) --- */
 .flight-particle {
     position: fixed;
-    background-color: #FFFFFF; 
+    background-color: #FFFFFF; /* Pure White Core */
     border-radius: 50%;
     pointer-events: none;
-    z-index: 10001; 
+    z-index: 10001; /* On top of gem */
     will-change: transform, opacity;
     animation: sparkle-fizzle 0.5s linear forwards; 
 }
@@ -330,9 +286,6 @@ body {
 .flight-particle.p-purple { 
     box-shadow: 0 0 4px 1px rgba(234, 128, 252, 0.6); 
 }
-.flight-particle.p-red { 
-    box-shadow: 0 0 4px 1px rgba(255, 23, 68, 0.6); 
-}
 
 @keyframes sparkle-fizzle {
     0% { transform: scale(1); opacity: 1; }
@@ -340,9 +293,9 @@ body {
     100% { transform: scale(0); opacity: 0; }
 }
 
-/* --- EMBEDDED WALL (UPDATED TO ORANGE) --- */
 .cell.embedded-wall {
-    background-color: #FF9F43; /* UPDATED COLOR */
+    /* UPDATED: Matching Neon Green Theme */
+    background-color: #44FF44; 
     box-shadow: inset 3px 3px 0px rgba(255, 255, 255, 0.4), inset -3px -3px 0px rgba(0, 0, 0, 0.2);
 }
 
@@ -387,6 +340,7 @@ body {
 /* =====================================================
    COMBO & REINFORCEMENT SYSTEM
    ===================================================== */
+
 @keyframes shake-1 { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-2px, 2px); } 75% { transform: translate(2px, -2px); } }
 @keyframes shake-2 { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-4px, 0); } 40% { transform: translate(4px, 0); } 60% { transform: translate(-4px, 0); } 80% { transform: translate(4px, 0); } }
 @keyframes shake-3 { 0%, 100% { transform: translate(0, 0); } 10%, 90% { transform: translate(-5px, -2px); } 30%, 70% { transform: translate(5px, 3px); } 50% { transform: translate(-5px, 5px); } }
@@ -512,8 +466,7 @@ body {
 }
 
 .piece.dragging .block.gem-gold,
-.piece.dragging .block.gem-purple,
-.piece.dragging .block.gem-red {
+.piece.dragging .block.gem-purple {
     box-shadow: 0 10px 20px rgba(0,0,0,0.3), inset 3px 3px 0px rgba(255, 255, 255, 0.4), inset -3px -3px 0px rgba(0, 0, 0, 0.2) !important;
 }
 
@@ -1032,13 +985,6 @@ body {
     border-radius: 50%;
 }
 
-/* Red Glow (NEW) */
-.gem-icon.gem-red.holy-glow {
-    filter: brightness(1.3) drop-shadow(0 0 10px rgba(255, 23, 68, 0.8));
-    box-shadow: 0 0 20px 5px rgba(213, 0, 0, 0.4);
-    border-radius: 50%;
-}
-
 @keyframes holy-pulse {
     0% { transform: scale(1); opacity: 1; }
     100% { transform: scale(1.1); opacity: 1; filter: brightness(1.6) drop-shadow(0 0 15px currentColor); }
@@ -1110,4 +1056,99 @@ body {
 @keyframes ripple-boom {
     0% { width: 10px; height: 10px; opacity: 1; border-width: 4px; }
     100% { width: 60px; height: 60px; opacity: 0; border-width: 0px; }
+}
+
+/* ============================================
+   LEVEL START SEQUENCE (1:1 COPY)
+   ============================================ */
+
+/* The Dark Overlay */
+#level-start-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+}
+
+#level-start-overlay.hidden { display: none !important; }
+
+/* The Deep Indigo Strip */
+#start-banner {
+    width: 100%; 
+    height: 180px; 
+    background: rgba(72, 52, 212, 0.95); 
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    transform-origin: center;
+    animation: strip-enter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.start-title {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 800;
+    font-style: normal;
+    color: #00FFFF;
+    font-size: 28px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+#start-gem-container {
+    display: flex;
+    gap: 40px;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Socket Empty State (Hides top bar numbers initially) */
+.socket-empty {
+    opacity: 0 !important;
+    transition: opacity 0.3s;
+}
+
+/* Banner Gem Styling */
+.start-gem-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+}
+
+.start-gem-wrapper span {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 900;
+    font-size: 32px;
+    color: #FFFFFF;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    line-height: 1;
+}
+
+.start-gem-wrapper .gem-icon {
+    transform: scale(1.3);
+    margin-bottom: 5px;
+}
+
+@keyframes strip-enter {
+    0% { transform: scaleX(0); opacity: 0; }
+    100% { transform: scaleX(1); opacity: 1; }
+}
+
+/* Ghost Gem for Flight Animation */
+.flying-gem-ghost {
+    position: fixed;
+    z-index: 26000;
+    pointer-events: none;
+    will-change: transform, top, left;
+    transition: all 0.6s cubic-bezier(0.5, 0, 0, 1); 
 }

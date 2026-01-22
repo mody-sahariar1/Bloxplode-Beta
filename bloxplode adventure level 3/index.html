@@ -3,25 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Gem Adventure</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,900&family=Rubik+Mono+One&family=Nunito:wght@800;900&display=swap" rel="stylesheet">
+    <title>Grid Puzzle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@800;900&family=Rubik+Mono+One&family=Nunito:wght@800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <div id="goal-bar">
-        <div class="goal-item">
-            <div class="gem-icon gem-gold"></div>
-            <span id="gold-count">0</span>
-        </div>
-        <div class="goal-item">
-            <div class="gem-icon gem-purple"></div>
-            <span id="purple-count">0</span>
-        </div>
-    </div>
-
     <div class="game-column" id="game-view">
-        <div id="grid-wrapper"><div id="grid"></div></div>
+        
+        <div id="progress-system">
+            
+            <div id="progress-tunnel">
+                <div id="progress-trace" style="width: 0%;"></div>
+                
+                <div id="progress-traveler" style="left: 0%;">
+                    <span id="score-val">0</span>
+                    <div class="impact-fx"></div> 
+                </div>
+            </div>
+
+            <div id="progress-target">
+                <span id="target-val">855</span>
+            </div>
+
+        </div>
+
+        <div id="grid-wrapper">
+            <div id="grid"></div>
+            <div class="clear-fx-layer"></div>
+        </div>
         
         <div id="no-space-message" class="hidden">No Space Left</div>
         
@@ -72,6 +83,15 @@
             
             <div class="action-btn" id="vic-btn-next">
                 <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <div id="level-start-overlay">
+        <div id="start-banner">
+            <div class="start-title">COLLECT</div>
+            <div id="start-target-icon">
+                <span id="start-target-text"></span>
             </div>
         </div>
     </div>

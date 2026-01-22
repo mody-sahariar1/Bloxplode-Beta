@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Grid Puzzle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@800;900&family=Rubik+Mono+One&family=Nunito:wght@800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-column" id="game-view">
+        
+        <div id="progress-system">
+            
+            <div id="progress-tunnel">
+                <div id="progress-trace" style="width: 0%;"></div>
+                
+                <div id="progress-traveler" style="left: 0%;">
+                    <span id="score-val">0</span>
+                    <div class="impact-fx"></div> 
+                </div>
+            </div>
+
+            <div id="progress-target">
+                <span id="target-val">1600</span>
+            </div>
+
+        </div>
+
+        <div id="grid-wrapper">
+            <div id="grid"></div>
+            <div class="clear-fx-layer"></div>
+        </div>
+        
+        <div id="no-space-message" class="hidden">No Space Left</div>
+        
+        <div id="tray">
+            <div class="tray-slot" id="slot-0"></div>
+            <div class="tray-slot" id="slot-1"></div>
+            <div class="tray-slot" id="slot-2"></div>
+        </div>
+    </div>
+
+    <div id="game-over-overlay" class="hidden">
+        <div class="failure-message">
+            <span class="word-level">LEVEL</span>
+            <span class="word-failed">FAILED!</span>
+        </div>
+        
+        <div class="game-over-buttons" id="go-buttons">
+            <div class="action-btn dormant" id="btn-home">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            </div>
+            <div class="action-btn" id="btn-retry">
+                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm-8 8c0-1.01.25-1.97.7-2.8L3.24 7.74C2.46 8.97 2 10.43 2 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6z"/></svg>
+            </div>
+            <div class="action-btn dormant" id="btn-next">
+                <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+            </div>
+        </div>
+    </div>
+    
+    <div id="victory-dim" class="hidden"></div>
+    <div id="victory-fireworks"></div>
+    
+    <div id="victory-ui-layer" class="hidden">
+        
+        <div class="victory-message">
+            <span class="word-level-vic">LEVEL</span>
+            <span class="word-cleared-vic">CLEARED!</span>
+        </div>
+
+        <div class="game-over-buttons victory-set" id="victory-buttons">
+            <div class="action-btn dormant" id="vic-btn-home">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            </div>
+            
+            <div class="action-btn dormant" id="vic-btn-retry">
+                <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm-8 8c0-1.01.25-1.97.7-2.8L3.24 7.74C2.46 8.97 2 10.43 2 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6z"/></svg>
+            </div>
+            
+            <div class="action-btn" id="vic-btn-next">
+                <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <div id="level-start-overlay">
+        <div id="start-banner">
+            <div class="start-title">COLLECT</div>
+            <div id="start-target-icon">
+                <span id="start-target-text"></span>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+    <script src="default-skin.js"></script>
+</body>
+</html>

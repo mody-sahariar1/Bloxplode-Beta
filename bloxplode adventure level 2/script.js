@@ -19,30 +19,54 @@ const Boss = {
 };
 
 // ============================================
-// AUDIO SYSTEM (LOGIC INTERFACE)
+// AUDIO SYSTEM (OPTIMIZED: PRELOAD + VISIBILITY)
 // ============================================
 const SoundSystem = {
     ctx: null,
     buffers: {},
     isMuted: false,
     heartbeatTimer: null,
-    bgmNode: null,   
-    bgmGain: null,   
+    bgmNode: null,
+    bgmGain: null,
 
+    // 1. Initialize Context & Start Loading Immediately
     init() {
         if (!this.ctx) {
+            // Create context immediately (it will likely be 'suspended' by browser policy)
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AudioContext();
+            
+            // Start fetching files right away so they are ready when user taps
             this.loadSounds();
-        } else if (this.ctx.state === 'suspended') {
+        }
+    },
+
+    // 2. Unlock Audio on User Interaction (Instant Start)
+    unlock() {
+        if (this.ctx && this.ctx.state === 'suspended') {
             this.ctx.resume().then(() => {
                 this.playMusic('bgm');
             });
+        } else if (this.ctx && this.ctx.state === 'running' && !this.bgmNode) {
+            // Fallback: If context was already running but music wasn't playing
+            this.playMusic('bgm');
+        }
+    },
+
+    // 3. Handle Tab Switching / Minimizing
+    handleVisibility() {
+        if (!this.ctx) return;
+        
+        if (document.hidden) {
+            // User left the tab/app -> Mute/Suspend
+            this.ctx.suspend(); 
+        } else {
+            // User returned -> Resume
+            this.ctx.resume();
         }
     },
 
     async loadSounds() {
-        // CLEANUP: Removed unused 'new_best' asset
         const fileNames = {
             'gem_pop': 'sounds/sharp_pop.wav',       
             'gem_collect': 'sounds/gem_collect.wav', 
@@ -66,47 +90,57 @@ const SoundSystem = {
             'combo_20': 'sounds/godlike.wav'
         };
 
-        for (const [name, url] of Object.entries(fileNames)) {
+        const promises = Object.entries(fileNames).map(async ([name, url]) => {
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
                 this.buffers[name] = audioBuffer;
-                console.log(`✅ Loaded: ${name}`);
+                // console.log(`✅ Loaded: ${name}`); // Comment out to reduce logs
             } catch (error) {
                 console.error(`❌ FAILED loading ${url}`);
             }
-        }
+        });
 
-        if (this.ctx) {
-            this.playMusic('bgm');
-        }
+        // Wait for all sounds to load
+        await Promise.all(promises);
+        console.log("🎵 All Audio Assets Ready");
     },
 
     play(name, pitch = 1.0, volume = 1.0) {
         if (this.isMuted || !this.ctx || !this.buffers[name]) return;
+        
+        // Safety: Ensure context is running (sometimes needed on older devices)
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+
         const source = this.ctx.createBufferSource();
         source.buffer = this.buffers[name];
         if (pitch !== 1.0) source.playbackRate.value = pitch;
+        
         const gainNode = this.ctx.createGain();
         gainNode.gain.value = volume;
+        
         source.connect(gainNode);
         gainNode.connect(this.ctx.destination);
         source.start(0);
     },
 
     playMusic(name) {
-        if (this.bgmNode) return;
+        if (this.bgmNode) return; // Already playing
         if (this.isMuted || !this.ctx || !this.buffers[name]) return;
+
         const source = this.ctx.createBufferSource();
         source.buffer = this.buffers[name];
         source.loop = true; 
+        
         const gainNode = this.ctx.createGain();
         gainNode.gain.value = 0.18; 
+        
         source.connect(gainNode);
         gainNode.connect(this.ctx.destination);
         source.start(0);
+        
         this.bgmNode = source;
         this.bgmGain = gainNode;
     },
@@ -130,21 +164,30 @@ const SoundSystem = {
     }
 };
 
-window.SoundSystem = SoundSystem;
-window.addEventListener('pointerdown', () => SoundSystem.init(), { once: true });
+// --- INITIALIZATION LISTENERS ---
 
+// 1. Start loading immediately (don't wait for click)
+SoundSystem.init();
+
+// 2. Unlock/Resume on first interaction (Instant Sound)
+window.addEventListener('pointerdown', () => SoundSystem.unlock(), { once: true });
+
+// 3. Stop audio when app is backgrounded/closed
+document.addEventListener('visibilitychange', () => SoundSystem.handleVisibility());
+
+window.SoundSystem = SoundSystem;
 // ==========================================
 // 2. ADVENTURE MODE CONFIGURATION
 // ==========================================
 const LEVEL_1_MAP = [
-    1, 1, 2, 0, 0, 3, 1, 1,
-    1, 1, 3, 0, 0, 2, 1, 1,
-    1, 1, 2, 0, 0, 3, 1, 1,  
     0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 
-    1, 1, 3, 0, 0, 2, 1, 1,
-    1, 1, 2, 0, 0, 3, 1, 1,
-    1, 1, 3, 0, 0, 2, 1, 1
+    0, 0, 0, 1, 1, 0, 0, 0,
+    0, 0, 0, 2, 3, 0, 0, 0,  
+    0, 1, 1, 3, 2, 1, 1, 0,
+    0, 1, 1, 2, 3, 1, 1, 0, 
+    0, 0, 0, 3, 2, 0, 0, 0,
+    0, 0, 0, 1, 1, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0
 ];
 
 let levelGoals = { gold: 0, purple: 0 };
@@ -167,22 +210,24 @@ const TOUCH_LIFT_AMOUNT = 100;
 window.gameScale = 1;
 window.gameEnded = false; 
 
-// === COLOR CHANGE: NEON GREEN ===
-const THEME_COLOR = '#44FF44'; // Previous was #FF66AA (Pink)
+// --- LEVEL START SEQUENCE (SETUP) ---
+window.inputLocked = false; 
+
+const PINK_COLOR = '#FF66AA';
 
 const SHAPES = {
-    DOT:    { data: [[0,0]], color: THEME_COLOR },
-    I2:     { data: [[0,0],[1,0]], color: THEME_COLOR },
-    I3:     { data: [[0,0],[1,0],[2,0]], color: THEME_COLOR },
-    I4:     { data: [[0,0],[1,0],[2,0],[3,0]], color: THEME_COLOR },
-    O2:     { data: [[0,0],[1,0],[0,1],[1,1]], color: THEME_COLOR },
-    T:      { data: [[0,1],[1,0],[1,1],[2,1]], color: THEME_COLOR },
-    PLUS:   { data: [[1,0],[0,1],[1,1],[2,1],[1,2]], color: THEME_COLOR },
-    I2_V:   { data: [[0,0],[0,1]], color: THEME_COLOR },
-    I3_V:   { data: [[0,0],[0,1],[0,2]], color: THEME_COLOR },
-    CORNER: { data: [[0,0],[1,0],[0,1]], color: THEME_COLOR },
-    L_LEFT: { data: [[0,0],[0,1],[0,2],[1,2]], color: THEME_COLOR },
-    SKEW:   { data: [[1,0],[2,0],[0,1],[1,1]], color: THEME_COLOR }
+    DOT:    { data: [[0,0]], color: PINK_COLOR },
+    I2:     { data: [[0,0],[1,0]], color: PINK_COLOR },
+    I3:     { data: [[0,0],[1,0],[2,0]], color: PINK_COLOR },
+    I4:     { data: [[0,0],[1,0],[2,0],[3,0]], color: PINK_COLOR },
+    O2:     { data: [[0,0],[1,0],[0,1],[1,1]], color: PINK_COLOR },
+    T:      { data: [[0,1],[1,0],[1,1],[2,1]], color: PINK_COLOR },
+    PLUS:   { data: [[1,0],[0,1],[1,1],[2,1],[1,2]], color: PINK_COLOR },
+    I2_V:   { data: [[0,0],[0,1]], color: PINK_COLOR },
+    I3_V:   { data: [[0,0],[0,1],[0,2]], color: PINK_COLOR },
+    CORNER: { data: [[0,0],[1,0],[0,1]], color: PINK_COLOR },
+    L_LEFT: { data: [[0,0],[0,1],[0,2],[1,2]], color: PINK_COLOR },
+    SKEW:   { data: [[1,0],[2,0],[0,1],[1,1]], color: PINK_COLOR }
 };
 
 const SHAPE_TIERS_EXPANDED = {
@@ -190,8 +235,6 @@ const SHAPE_TIERS_EXPANDED = {
     MEDIUM: ['I3', 'T', 'I3_V'],              
     HARD: ['I4', 'PLUS', 'L_LEFT', 'SKEW']              
 };
-
-// CLEANUP: Removed unused SHAPE_TIERS object
 
 // ==========================================
 // 4. INITIALIZATION & LOGIC
@@ -216,7 +259,7 @@ function updateGoalUI() {
 
 function loadLevel() {
     // Explicit Objectives (Block Blast Style)
-    levelGoals = { gold: 12, purple: 12 };
+    levelGoals = { gold: 6, purple: 6 };
     
     gridState = [...LEVEL_1_MAP]; 
 
@@ -252,6 +295,9 @@ function init() {
     // --- RESET MOVE COUNT ---
     moveCount = 0;
     
+    // --- BLOCK INPUT INITIALLY ---
+    window.inputLocked = true;
+    
     loadLevel(); 
     recentShapes = [];
     spawnTrayPieces();
@@ -261,6 +307,12 @@ function init() {
     const slots = document.querySelectorAll('.tray-slot');
     slots.forEach(slot => {
         slot.addEventListener('touchstart', (e) => { e.preventDefault(); }, { passive: false });
+    });
+
+    // TRIGGER VISUAL PIPE SEQUENCE (T=0)
+    VisualPipe.emit("start_sequence", { 
+        gold: levelGoals.gold, 
+        purple: levelGoals.purple 
     });
 }
 
@@ -362,7 +414,6 @@ function canShapeFitAnywhere(shapeKey) {
 
 function getWeightedRandomShape(weights) {
     let pool = [];
-    // CLEANUP: Hardcoded to Expanded Mode, removed conditional check
     const currentTiers = SHAPE_TIERS_EXPANDED;
 
     currentTiers.EASY.forEach(key => {
@@ -479,8 +530,8 @@ document.addEventListener('touchmove', function(e) { e.preventDefault(); }, { pa
 document.addEventListener('touchstart', function(e) { if(e.target.closest('#tray')) e.preventDefault(); }, { passive: false });
 
 window.addEventListener('pointerdown', e => {
-    // Game Freeze Check
-    if (window.gameEnded) return;
+    // Game Freeze Check OR Input Lock Check
+    if (window.gameEnded || window.inputLocked) return;
 
     const slot = e.target.closest('.tray-slot');
     if (!slot || activeDrag) return;
@@ -828,7 +879,7 @@ if (retryBtn) retryBtn.onclick = fullReset;
 
 const nextBtn = document.getElementById("vic-btn-next");
 if (nextBtn) {
-    // Go to Level 3
+    // WINNER: Go to Level 3
     nextBtn.onclick = () => window.location.href = "../bloxplode adventure level 3/index.html";
 }
 
@@ -936,4 +987,10 @@ VisualPipe.on("reset_cells", ({ indices }) => {
     });
 });
 
-init();
+// Wait for the browser to finish loading visuals before starting logic
+window.addEventListener('DOMContentLoaded', () => {
+    // A tiny safety delay to ensure default-skin.js is fully registered
+    setTimeout(() => {
+        init();
+    }, 10);
+});

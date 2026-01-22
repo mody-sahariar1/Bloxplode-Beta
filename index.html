@@ -3,42 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Bloxplode Adventure</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,900&family=Rubik+Mono+One&display=swap" rel="stylesheet">
+    <title>Bloxplode Game Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@700&family=Rubik+Mono+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="menu.css">
 </head>
 <body>
 
     <div class="menu-container">
-        <h1 class="game-title">BLOXPLODE<br><span class="subtitle">ADVENTURE</span></h1>
         
-        <div class="level-grid">
-            <a href="bloxplode adventure level 1/index.html" class="level-card">
-                <span class="level-num">01</span>
-                <span class="level-label">Level 1</span>
+        <h1 class="game-title">BLOXPLODE<br><span class="subtitle">GAME HUB</span></h1>
+        
+        <div id="main-menu">
+            <a href="classic/index.html" class="big-btn classic-btn">
+                <span class="btn-text">CLASSIC</span>
             </a>
 
-            <a href="bloxplode adventure level 2/index.html" class="level-card">
-                <span class="level-num">02</span>
-                <span class="level-label">Level 2</span>
-            </a>
-
-            <a href="bloxplode adventure level 3/index.html" class="level-card">
-                <span class="level-num">03</span>
-                <span class="level-label">Level 3</span>
-            </a>
-
-            <a href="bloxplode adventure level 4/index.html" class="level-card">
-                <span class="level-num">04</span>
-                <span class="level-label">Level 4</span>
-            </a>
-
-            <a href="bloxplode adventure level 5/index.html" class="level-card">
-                <span class="level-num">05</span>
-                <span class="level-label">Level 5</span>
-            </a>
+            <button onclick="showAdventure()" class="big-btn adventure-btn">
+                <span class="btn-text">ADVENTURE</span>
+            </button>
         </div>
+
+        <div id="adventure-menu" class="hidden">
+            
+            <h2 class="section-title">SELECT LEVEL</h2>
+            
+            <div class="level-grid">
+                <a href="bloxplode adventure level 1/index.html" class="level-card">
+                    <span class="level-num">01</span>
+                </a>
+
+                <a href="bloxplode adventure level 2/index.html" class="level-card">
+                    <span class="level-num">02</span>
+                </a>
+
+                <a href="bloxplode adventure level 3/index.html" class="level-card">
+                    <span class="level-num">03</span>
+                </a>
+
+                <a href="bloxplode adventure level 4/index.html" class="level-card">
+                    <span class="level-num">04</span>
+                </a>
+
+                <a href="bloxplode adventure level 5/index.html" class="level-card">
+                    <span class="level-num">05</span>
+                </a>
+
+                <a href="bloxplode adventure level 6/index.html" class="level-card">
+                    <span class="level-num">06</span>
+                </a>
+
+                <a href="bloxplode adventure level 7/index.html" class="level-card">
+                    <span class="level-num">07</span>
+                </a>
+
+                <a href="bloxplode adventure level 8/index.html" class="level-card">
+                    <span class="level-num">08</span>
+                </a>
+
+                <a href="bloxplode adventure level 9/index.html" class="level-card">
+                    <span class="level-num">09</span>
+                </a>
+
+                <a href="bloxplode adventure level 10/index.html" class="level-card">
+                    <span class="level-num">10</span>
+                </a>
+            </div>
+
+            <button onclick="showMain()" class="back-btn">
+                ← BACK
+            </button>
+        </div>
+
     </div>
+
+    <script>
+        function showAdventure() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('adventure-menu').classList.remove('hidden');
+        }
+
+        function showMain() {
+            document.getElementById('adventure-menu').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+        }
+    </script>
 
 </body>
 </html>
