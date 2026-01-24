@@ -1,48 +1,40 @@
 // ============================================
-// AUDIO SYSTEM (OPTIMIZED: PRELOAD + VISIBILITY)
+// AUDIO SYSTEM (OPTIMIZED: PARALLEL LOADING + VISIBILITY HANDLER)
 // ============================================
 const SoundSystem = {
     ctx: null,
     buffers: {},
     isMuted: false,
     heartbeatTimer: null,
-    bgmNode: null,
-    bgmGain: null,
+    bgmNode: null,   
+    bgmGain: null,   
 
-    // 1. Initialize Context & Start Loading Immediately
     init() {
         if (!this.ctx) {
-            // Create context immediately (it will likely be 'suspended' by browser policy)
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AudioContext();
             
-            // Start fetching files right away so they are ready when user taps
-            this.loadSounds();
-        }
-    },
-
-    // 2. Unlock Audio on User Interaction (Instant Start)
-    unlock() {
-        if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume().then(() => {
-                this.playMusic('bgm');
+            // Handle Visibility Changes (Stops audio when minimized/locked)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    if (this.ctx.state === 'running') {
+                        this.ctx.suspend();
+                    }
+                } else {
+                    if (this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                }
             });
-        } else if (this.ctx && this.ctx.state === 'running' && !this.bgmNode) {
-            // Fallback: If context was already running but music wasn't playing
-            this.playMusic('bgm');
-        }
-    },
 
-    // 3. Handle Tab Switching / Minimizing
-    handleVisibility() {
-        if (!this.ctx) return;
-        
-        if (document.hidden) {
-            // User left the tab/app -> Mute/Suspend
-            this.ctx.suspend(); 
-        } else {
-            // User returned -> Resume
-            this.ctx.resume();
+            this.loadSounds();
+        } else if (this.ctx.state === 'suspended') {
+            this.ctx.resume().then(() => {
+                // Ensure music is playing if we just woke up
+                if (!this.bgmNode && this.buffers['bgm']) {
+                    this.playMusic('bgm');
+                }
+            });
         }
     },
 
@@ -78,29 +70,33 @@ const SoundSystem = {
             'combo_20': 'sounds/godlike.wav'
         };
 
-        const promises = Object.entries(fileNames).map(async ([name, url]) => {
+        const loadPromises = Object.entries(fileNames).map(async ([name, url]) => {
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
                 this.buffers[name] = audioBuffer;
-                // console.log(`✅ Loaded: ${name}`); 
+                
+                // OPTIMIZATION: Play music immediately when IT is ready
+                // Don't wait for other sounds to finish loading
+                if (name === 'bgm') {
+                     this.playMusic('bgm');
+                }
             } catch (error) {
                 console.error(`❌ FAILED loading ${url}`);
             }
         });
 
-        // Wait for all sounds to load
-        await Promise.all(promises);
-        console.log("🎵 All Audio Assets Ready");
+        // Run all fetches in parallel
+        await Promise.all(loadPromises);
     },
 
     // --- SFX PLAYER ---
     play(name, pitch = 1.0, volume = 1.0) {
         if (this.isMuted || !this.ctx || !this.buffers[name]) return;
-
-        // Safety: Ensure context is running (sometimes needed on older devices)
+        
+        // Safety check: if context is suspended (weird edge case), resume it
         if (this.ctx.state === 'suspended') this.ctx.resume();
 
         const source = this.ctx.createBufferSource();
@@ -157,18 +153,8 @@ const SoundSystem = {
     }
 };
 
-// --- INITIALIZATION LISTENERS ---
-
-// 1. Start loading immediately (don't wait for click)
-SoundSystem.init();
-
-// 2. Unlock/Resume on first interaction (Instant Sound)
-window.addEventListener('pointerdown', () => SoundSystem.unlock(), { once: true });
-
-// 3. Stop audio when app is backgrounded/closed
-document.addEventListener('visibilitychange', () => SoundSystem.handleVisibility());
-
 window.SoundSystem = SoundSystem;
+window.addEventListener('pointerdown', () => SoundSystem.init(), { once: true });
 
 
 // ============================================
@@ -839,15 +825,5 @@ function fullReset() {
     initialSessionBest = bestScore; 
     init(); 
 }
-
 document.getElementById("restart-overlay-btn").onclick = fullReset;
 init();
-// --- SETTINGS MENU LOGIC ---
-function toggleSettings() {
-    const overlay = document.getElementById('settings-overlay');
-    if (overlay.classList.contains('hidden')) {
-        overlay.classList.remove('hidden');
-    } else {
-        overlay.classList.add('hidden');
-    }
-}

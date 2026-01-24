@@ -36,7 +36,7 @@ let cells = [], gridState = Array(64).fill(0);
 let lastGhostFingerprint = null; 
 
 // ============================================
-// AUDIO SYSTEM (OPTIMIZED)
+// AUDIO SYSTEM (OPTIMIZED & FIXED)
 // ============================================
 const SoundSystem = {
     ctx: null, buffers: {}, isMuted: false, heartbeatTimer: null, bgmNode: null, bgmGain: null,
@@ -83,6 +83,11 @@ const SoundSystem = {
     },
     play(name, pitch = 1.0, volume = 1.0) {
         if (this.isMuted || !this.ctx || !this.buffers[name]) return;
+        
+        // CHECK SETTINGS FOR SFX
+        const sfxEnabled = localStorage.getItem('blox_sfx_enabled') !== 'false';
+        if (!sfxEnabled) return;
+
         const s = this.ctx.createBufferSource(); s.buffer = this.buffers[name];
         if (pitch !== 1.0) s.playbackRate.value = pitch;
         const g = this.ctx.createGain(); g.gain.value = volume;
@@ -90,10 +95,26 @@ const SoundSystem = {
     },
     playMusic(name) {
         if (this.bgmNode || this.isMuted || !this.ctx || !this.buffers[name]) return;
-        const s = this.ctx.createBufferSource(); s.buffer = this.buffers[name]; s.loop = true;
-        const g = this.ctx.createGain(); g.gain.value = 0.18;
-        s.connect(g); g.connect(this.ctx.destination); s.start(0);
+        
+        // --- CRITICAL FIX START ---
+        // 1. Check settings explicitly BEFORE starting
+        const bgmEnabled = localStorage.getItem('blox_bgm_enabled') !== 'false';
+        const startVolume = bgmEnabled ? 0.18 : 0;
+
+        const s = this.ctx.createBufferSource(); 
+        s.buffer = this.buffers[name]; 
+        s.loop = true;
+        
+        const g = this.ctx.createGain(); 
+        g.gain.value = startVolume; // Apply calculated volume
+        
+        s.connect(g); 
+        g.connect(this.ctx.destination); 
+        s.start(0);
+        
         this.bgmNode = s;
+        this.bgmGain = g; // 2. EXPOSE THE GAIN NODE SO SETTINGS CAN CONTROL IT LATER
+        // --- CRITICAL FIX END ---
     },
     startHeartbeat() {
         if (this.heartbeatTimer) return;
@@ -1223,4 +1244,28 @@ function runGameOverSequence() {
             }
         }
     }, 1270);
+}
+
+// ==========================================
+// FORCE REDIRECT TO ADVENTURE MAP
+// ==========================================
+
+// 1. Select the "Home" buttons from Game Over & Victory screens
+const failHomeBtn = document.getElementById("btn-home");
+const vicHomeBtn = document.getElementById("vic-btn-home");
+
+// 2. Define the Redirect Function
+function goToAdventureMap() {
+    // The query param '?returnTo=adventure' triggers the logic 
+    // in your main index.html to skip the intro and open the map.
+    window.location.href = "../index.html?returnTo=adventure";
+}
+
+// 3. Attach the click events
+if (failHomeBtn) {
+    failHomeBtn.onclick = goToAdventureMap;
+}
+
+if (vicHomeBtn) {
+    vicHomeBtn.onclick = goToAdventureMap;
 }

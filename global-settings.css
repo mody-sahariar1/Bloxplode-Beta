@@ -1,0 +1,232 @@
+/* =========================================================
+   UNIVERSAL SETTINGS MODULE - GLOBAL STYLES
+   Theme: Blue/Purple Glossy (Stratos Aesthetic)
+   ========================================================= */
+
+/* --- 1. THE GEAR ICON (AUTO-INJECTED) --- */
+#universal-gear-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 99999;
+    transition: transform 0.2s ease, background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#universal-gear-btn svg {
+    width: 28px;
+    height: 28px;
+    fill: #ffffff;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+}
+
+#universal-gear-btn:active {
+    transform: scale(0.9);
+    background: rgba(0, 0, 0, 0.6);
+}
+
+/* --- 2. THE MODAL OVERLAY --- */
+#us-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(12, 12, 20, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 100000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+#us-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* --- 3. THE MODAL BOX --- */
+.us-modal {
+    width: 340px;
+    background: linear-gradient(180deg, #5D3FD3 0%, #311B92 100%); /* Deep Purple/Blue */
+    border-radius: 24px;
+    padding: 25px;
+    box-shadow: 
+        0 20px 50px rgba(0,0,0,0.6),
+        inset 0 1px 1px rgba(255,255,255,0.2),
+        inset 0 -4px 0 rgba(0,0,0,0.2);
+    border: 2px solid rgba(255,255,255,0.1);
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-align: center;
+    font-family: 'Kanit', sans-serif; /* Matches your game font */
+    color: white;
+}
+
+#us-overlay.active .us-modal {
+    transform: scale(1);
+}
+
+/* Header */
+.us-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+}
+
+.us-title {
+    font-size: 28px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    display: flex; align-items: center; gap: 10px;
+}
+
+.us-close-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 32px;
+    font-weight: 700;
+    cursor: pointer;
+    line-height: 1;
+}
+.us-close-btn:active { color: white; }
+
+/* --- 4. TOGGLE ROWS --- */
+.us-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 10px;
+}
+
+.us-label {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.us-icon {
+    font-size: 24px;
+    width: 30px;
+    text-align: center;
+}
+
+/* IOS STYLE TOGGLE SWITCH */
+.us-switch {
+    position: relative;
+    width: 60px;
+    height: 34px;
+    display: inline-block;
+}
+
+.us-switch input { opacity: 0; width: 0; height: 0; }
+
+.us-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #2c2c54; /* Dark Off */
+    transition: .4s;
+    border-radius: 34px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.us-slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+input:checked + .us-slider {
+    background-color: #00E5FF; /* Stratos Cyan for ON */
+}
+
+input:checked + .us-slider:before {
+    transform: translateX(26px);
+}
+
+/* --- 5. ACTION BUTTONS (Home / Restart) --- */
+.us-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid rgba(255,255,255,0.1);
+}
+
+.us-btn {
+    height: 60px;
+    border-radius: 12px;
+    border: none;
+    font-family: 'Kanit', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+/* SVG ICON STYLING INSIDE BUTTONS */
+.us-btn svg {
+    width: 24px;
+    height: 24px;
+    fill: white;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+.us-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+}
+
+/* Green Theme for Actions */
+.btn-green {
+    background: linear-gradient(180deg, #4ADE80 0%, #22C55E 100%);
+    box-shadow: 0 4px 0 #15803D;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.btn-green:active { box-shadow: 0 0 0 #15803D; }
+
+/* Footer */
+.us-footer {
+    margin-top: 15px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    font-family: sans-serif;
+    letter-spacing: 1px;
+}
