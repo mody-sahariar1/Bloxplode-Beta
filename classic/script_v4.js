@@ -14,52 +14,35 @@ const SoundSystem = {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             this.ctx = new AudioContext();
             
-            // Handle Visibility Changes (Stops audio when minimized/locked)
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) {
-                    if (this.ctx.state === 'running') {
-                        this.ctx.suspend();
-                    }
+                    if (this.ctx.state === 'running') this.ctx.suspend();
                 } else {
-                    if (this.ctx.state === 'suspended') {
-                        this.ctx.resume();
-                    }
+                    if (this.ctx.state === 'suspended') this.ctx.resume();
                 }
             });
 
             this.loadSounds();
         } else if (this.ctx.state === 'suspended') {
             this.ctx.resume().then(() => {
-                // Ensure music is playing if we just woke up
-                if (!this.bgmNode && this.buffers['bgm']) {
-                    this.playMusic('bgm');
-                }
+                if (!this.bgmNode && this.buffers['bgm']) this.playMusic('bgm');
             });
         }
     },
 
     async loadSounds() {
         const fileNames = {
-            // --- CORE UI ---
             'grab': 'sounds/piece_grab.wav',
             'place': 'sounds/piece_place.wav',
             'new_best': 'sounds/best_score.wav',
             'heartbeat': 'sounds/heartbeat.wav',
             'game_over': 'sounds/score_banner.wav', 
-            
-            // --- BACKGROUND MUSIC ---
             'bgm': 'sounds/background.wav',
-            
-            // --- NEW: POST-GAME BEST SCORE CELEBRATION ---
             'gameover_best': 'sounds/gameover_bestscore.wav', 
-            
-            // --- PREMIUM MUSIC SFX ---
             'instant_win': 'sounds/instant_win.wav',       
             'winning_swoosh': 'sounds/winning_swoosh.wav', 
             'victory_chime': 'sounds/victory_chime.wav',   
             'epic_victory': 'sounds/epic_victory.wav',
-
-            // --- COMBO VOICES ---
             'combo_2': 'sounds/nice.wav',
             'combo_5': 'sounds/sweet.wav',
             'combo_8': 'sounds/great.wav',
@@ -77,31 +60,20 @@ const SoundSystem = {
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
                 this.buffers[name] = audioBuffer;
-                
-                // OPTIMIZATION: Play music immediately when IT is ready
-                // Don't wait for other sounds to finish loading
-                if (name === 'bgm') {
-                     this.playMusic('bgm');
-                }
+                if (name === 'bgm') this.playMusic('bgm');
             } catch (error) {
                 console.error(`❌ FAILED loading ${url}`);
             }
         });
-
-        // Run all fetches in parallel
         await Promise.all(loadPromises);
     },
 
-    // --- SFX PLAYER ---
     play(name, pitch = 1.0, volume = 1.0) {
         if (this.isMuted || !this.ctx || !this.buffers[name]) return;
-        
-        // Safety check: if context is suspended (weird edge case), resume it
         if (this.ctx.state === 'suspended') this.ctx.resume();
 
         const source = this.ctx.createBufferSource();
         source.buffer = this.buffers[name];
-        
         if (pitch !== 1.0) source.playbackRate.value = pitch;
 
         const gainNode = this.ctx.createGain();
@@ -109,11 +81,9 @@ const SoundSystem = {
 
         source.connect(gainNode);
         gainNode.connect(this.ctx.destination);
-        
         source.start(0);
     },
 
-    // --- MUSIC PLAYER ---
     playMusic(name) {
         if (this.bgmNode) return;
         if (this.isMuted || !this.ctx || !this.buffers[name]) return;
@@ -123,11 +93,10 @@ const SoundSystem = {
         source.loop = true; 
 
         const gainNode = this.ctx.createGain();
-        gainNode.gain.value = 0.18; // 18% Volume
+        gainNode.gain.value = 0.18; 
 
         source.connect(gainNode);
         gainNode.connect(this.ctx.destination);
-        
         source.start(0);
 
         this.bgmNode = source;
@@ -160,6 +129,69 @@ window.addEventListener('pointerdown', () => SoundSystem.init(), { once: true })
 // ============================================
 // GAME LOGIC
 // ============================================
+
+// --- TUTORIAL CONFIGURATION (3 STAGES) ---
+let tutorialStage = 0;
+
+// UPDATED: Check LocalStorage. If 'blox_tutorial_done' exists, skip tutorial.
+// If it is null/undefined, run tutorial.
+let isTutorialMode = !localStorage.getItem('blox_tutorial_done'); 
+
+const TUTORIAL_LEVELS = [
+    {
+        // STAGE 1: The Horizon (Soft Cyan)
+        map: [
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            1,1,1,0,0,1,1,1, 
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0,
+            0,0,0,0,0,0,0,0
+        ],
+        piece: 'I2', 
+        targetRow: 3,
+        targetCol: 3,
+        junkColor: '#29B6F6' 
+    },
+    {
+        // STAGE 2: The Vertical Pillars (Vibrant Purple)
+        // 4 Columns filled, middle gap for horizontal I4
+        map: [
+            0,0,1,1,1,1,0,0, // Row 0
+            0,0,1,1,1,1,0,0, // Row 1
+            0,0,1,1,1,1,0,0, // Row 2
+            0,0,0,0,0,0,0,0, // Row 3 (Empty Gap)
+            0,0,1,1,1,1,0,0, // Row 4
+            0,0,1,1,1,1,0,0, // Row 5
+            0,0,1,1,1,1,0,0, // Row 6
+            0,0,1,1,1,1,0,0  // Row 7
+        ],
+        piece: 'I4', 
+        targetRow: 3,
+        targetCol: 2,
+        junkColor: '#AB47BC'
+    },
+    {
+        // STAGE 3: The Cross (Electric Orange)
+        map: [
+            0,0,0,1,1,0,0,0, 
+            0,0,0,1,1,0,0,0,
+            0,0,0,1,1,0,0,0,
+            1,1,1,0,0,1,1,1, 
+            1,1,1,0,0,1,1,1, 
+            0,0,0,1,1,0,0,0,
+            0,0,0,1,1,0,0,0,
+            0,0,0,1,1,0,0,0
+        ],
+        piece: 'O2', 
+        targetRow: 3,
+        targetCol: 3,
+        junkColor: '#FFA726'
+    }
+];
+
 
 const gridSize = 8;
 const grid = document.getElementById("grid");
@@ -229,6 +261,157 @@ function resizeGame() {
     gameCol.style.transform = `scale(${scale})`;
 }
 
+// --- TUTORIAL ENGINE ---
+
+function setupTutorialLevel(stageIdx) {
+    const data = TUTORIAL_LEVELS[stageIdx];
+    
+    // 1. Text Instruction (Only for Stage 1)
+    if (stageIdx === 0) {
+        showTutorialText("Drag the block and drop it into the gap");
+    } else {
+        hideTutorialText();
+    }
+
+    // 2. Build Grid
+    gridState.fill(0);
+    cells.forEach((cell, i) => {
+        cell.className = "cell";
+        cell.style.removeProperty('--block-color');
+        cell.classList.remove('occupied', 'visual-fill', 'ghost', 'ghost-clear');
+        
+        if (data.map[i] === 1) {
+            gridState[i] = 1;
+            cell.classList.add('occupied', 'visual-fill');
+            // APPLY CUSTOM STAGE COLOR
+            cell.style.setProperty('--block-color', data.junkColor); 
+        }
+    });
+
+    // 3. Clear Tray & Spawn Specific Piece
+    const slots = document.querySelectorAll(".tray-slot");
+    slots.forEach(s => s.innerHTML = ""); 
+    
+    const targetSlot = slots[1]; // Middle slot
+    const piece = document.createElement("div");
+    piece.className = "piece";
+    piece.dataset.shape = data.piece;
+    renderPiece(piece, SHAPES[data.piece]);
+    targetSlot.appendChild(piece);
+
+    // 4. Summon Ghost Hand
+    setTimeout(() => spawnHand(targetSlot, data.piece, data.targetRow, data.targetCol), 500);
+}
+
+// --- TEXT HELPERS ---
+function showTutorialText(message) {
+    let el = document.getElementById('tutorial-msg');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'tutorial-msg';
+        el.className = 'tutorial-text';
+        document.querySelector('.game-column').appendChild(el);
+    }
+    el.textContent = message;
+    el.style.opacity = '0';
+    void el.offsetWidth;
+    el.style.opacity = '1';
+}
+
+function hideTutorialText() {
+    const el = document.getElementById('tutorial-msg');
+    if (el) el.remove();
+}
+
+function spawnHand(slotElement, shapeKey, gridRow, gridCol) {
+    removeHand();
+
+    const shapeData = SHAPES[shapeKey].data;
+    const color = SHAPES[shapeKey].color;
+    
+    // 1. MEASURE SHAPE (Raw Units)
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    shapeData.forEach(([x, y]) => {
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+    });
+    const blockSize = 44; 
+    const gap = 4;
+    const pieceWidth = (maxX - minX + 1) * blockSize + (maxX - minX) * gap;
+    const pieceHeight = (maxY - minY + 1) * blockSize + (maxY - minY) * gap;
+
+    // 2. GET SCREEN COORDINATES (Absolute DOM)
+    const slotRect = slotElement.getBoundingClientRect();
+    const targetCellIndex = gridRow * 8 + gridCol;
+    const targetCell = cells[targetCellIndex];
+    if (!targetCell) return;
+    const targetRect = targetCell.getBoundingClientRect();
+
+    const currentScale = window.gameScale || 1;
+    const visualWidth = pieceWidth * currentScale;
+    const visualHeight = pieceHeight * currentScale;
+
+    // 3. CALCULATE POSITIONS (Screen Pixels)
+    const startX = slotRect.left + (slotRect.width - visualWidth) / 2;
+    const startY = slotRect.top + (slotRect.height - visualHeight) / 2;
+
+    const endX = targetRect.left;
+    const endY = targetRect.top;
+
+    const moveX = endX - startX;
+    const moveY = endY - startY;
+
+    // 4. CREATE WRAPPER
+    const wrapper = document.createElement('div');
+    wrapper.className = 'tutorial-wrapper';
+    
+    wrapper.style.left = `${startX}px`;
+    wrapper.style.top = `${startY}px`;
+    
+    wrapper.style.setProperty('--start-x', `0px`);
+    wrapper.style.setProperty('--start-y', `0px`);
+    wrapper.style.setProperty('--move-x', `${moveX}px`);
+    wrapper.style.setProperty('--move-y', `${moveY}px`);
+    wrapper.style.setProperty('--scale', currentScale);
+
+    // 5. BUILD GHOST
+    const ghostPiece = document.createElement('div');
+    ghostPiece.className = 'tutorial-ghost-piece';
+    ghostPiece.style.width = pieceWidth + "px";
+    ghostPiece.style.height = pieceHeight + "px";
+
+    shapeData.forEach(([x, y]) => {
+        const block = document.createElement("div");
+        block.className = "block";
+        block.style.width = "44px"; block.style.height = "44px";
+        block.style.backgroundColor = color;
+        block.style.left = ((x - minX) * (blockSize + gap)) + "px";
+        block.style.top = ((y - minY) * (blockSize + gap)) + "px";
+        ghostPiece.appendChild(block);
+    });
+
+    const handIcon = document.createElement('div');
+    handIcon.className = 'tutorial-hand-img';
+
+    wrapper.appendChild(ghostPiece);
+    wrapper.appendChild(handIcon);
+    document.body.appendChild(wrapper);
+}
+
+function removeHand() {
+    const wrapper = document.querySelector('.tutorial-wrapper');
+    if (wrapper) wrapper.remove();
+}
+
+function restoreTutorialHand() {
+    if (!isTutorialMode) return;
+    const currentLevel = TUTORIAL_LEVELS[tutorialStage];
+    const slots = document.querySelectorAll(".tray-slot");
+    spawnHand(slots[1], currentLevel.piece, currentLevel.targetRow, currentLevel.targetCol);
+}
+
+// --- MAIN INIT ---
+
 function init() {
     resizeGame();
     window.addEventListener('resize', resizeGame);
@@ -242,16 +425,14 @@ function init() {
         grid.appendChild(cell);
         cells.push(cell);
     }
-    recentShapes = [];
-    spawnTrayPieces();
     
+    recentShapes = [];
     score = 0; confirmedScore = 0; displayedScore = 0;
     scoreEl.textContent = "0"; 
     combo = 0; nonClearCount = 0;
     
     document.body.classList.remove('combo-active');
     document.body.removeAttribute('data-grace');
-    
     isGameLocked = false;
     document.getElementById("no-space-message").classList.add("hidden");
     document.getElementById("tray").style.opacity = "1";
@@ -261,21 +442,29 @@ function init() {
     const nbOverlay = document.getElementById('new-best-overlay');
     nbOverlay.classList.add('hidden');
     nbOverlay.classList.remove('fade-out-best');
-
-    cells.forEach(cell => {
-        cell.classList.remove('visual-fill');
-        cell.style.removeProperty('--block-color');
-    });
+    
+    // STARTUP LOGIC: CHECK IF TUTORIAL IS NEEDED
+    if (isTutorialMode) {
+        document.querySelector('.top-bar').style.opacity = '0';
+        document.querySelector('.top-bar').style.pointerEvents = 'none';
+        tutorialStage = 0;
+        setupTutorialLevel(0); 
+    } else {
+        document.querySelector('.top-bar').style.opacity = '1';
+        document.querySelector('.top-bar').style.pointerEvents = 'all';
+        spawnTrayPieces(); 
+    }
 }
 
 function updateUI() {
+    if (isTutorialMode) return;
+
     if (displayedScore < confirmedScore) {
         const step = Math.ceil((confirmedScore - displayedScore) / 8);
         displayedScore += Math.max(1, step);
         scoreEl.textContent = displayedScore;
         
         let currentDisplayBest = parseInt(bestScoreEl.textContent) || 0;
-        
         if (displayedScore > currentDisplayBest) {
             bestScoreEl.textContent = displayedScore;
             localStorage.setItem("bloxplode_best_v2", displayedScore);
@@ -290,7 +479,6 @@ function updateUI() {
         if (displayedScore !== confirmedScore) {
             displayedScore = confirmedScore;
             scoreEl.textContent = displayedScore;
-            
             let currentDisplayBest = parseInt(bestScoreEl.textContent) || 0;
             if (displayedScore > currentDisplayBest) {
                 bestScoreEl.textContent = displayedScore;
@@ -301,11 +489,11 @@ function updateUI() {
 }
 
 function triggerNewBestAnimation() {
+    if (isTutorialMode) return;
     SoundSystem.play('new_best');
     hasBrokenRecord = true;
     const nbOverlay = document.getElementById('new-best-overlay');
     nbOverlay.classList.remove('hidden'); 
-    
     setTimeout(() => {
         nbOverlay.classList.add('fade-out-best'); 
         setTimeout(() => {
@@ -328,34 +516,35 @@ function clearLines(lastRow, lastCol, placedColor) {
     const totalLines = rToClear.length + cToClear.length;
     
     if (totalLines > 0) {
-        combo++;
-        nonClearCount = 0; 
-        
-        if (combo >= 2) {
-            document.body.classList.add('combo-active');
-            document.body.setAttribute('data-grace', '0'); 
-            SoundSystem.startHeartbeat();
-            const scoreBox = document.querySelector('.score-box:first-child');
-            if (scoreBox) {
-                scoreBox.classList.remove('pulse-trigger');
-                void scoreBox.offsetWidth; 
-                scoreBox.classList.add('pulse-trigger');
+        if (!isTutorialMode) {
+            combo++;
+            nonClearCount = 0; 
+            if (combo >= 2) {
+                document.body.classList.add('combo-active');
+                document.body.setAttribute('data-grace', '0'); 
+                SoundSystem.startHeartbeat();
+                const scoreBox = document.querySelector('.score-box:first-child');
+                if (scoreBox) {
+                    scoreBox.classList.remove('pulse-trigger');
+                    void scoreBox.offsetWidth; 
+                    scoreBox.classList.add('pulse-trigger');
+                }
             }
-        }
-        
-        let basePayout = 50;
-        if (totalLines === 2) basePayout = 150;
-        else if (totalLines === 3) basePayout = 350;
-        else if (totalLines === 4) basePayout = 750;
-        else if (totalLines >= 5) basePayout = 1200;
-        
-        let finalPoints = basePayout * combo;
-        score += finalPoints; 
+            let basePayout = 50;
+            if (totalLines === 2) basePayout = 150;
+            else if (totalLines === 3) basePayout = 350;
+            else if (totalLines === 4) basePayout = 750;
+            else if (totalLines >= 5) basePayout = 1200;
+            
+            let finalPoints = basePayout * combo;
+            score += finalPoints; 
 
-        VisualPipe.emit("clear_feedback", { combo });
-        const targetCellIndex = lastRow * 8 + lastCol;
-        VisualPipe.emit("score_float", { points: finalPoints, targetIndex: targetCellIndex });
-        VisualPipe.emit("clear_anim", { rToClear, cToClear, combo });
+            VisualPipe.emit("clear_feedback", { combo });
+            const targetCellIndex = lastRow * 8 + lastCol;
+            VisualPipe.emit("score_float", { points: finalPoints, targetIndex: targetCellIndex });
+        }
+
+        VisualPipe.emit("clear_anim", { rToClear, cToClear, combo: (isTutorialMode ? 1 : combo) });
 
         const clearedIndices = [];
         rToClear.forEach(r => { for (let c = 0; c < 8; c++) { const idx = r * 8 + c; gridState[idx] = 0; clearedIndices.push(idx); } });
@@ -363,16 +552,18 @@ function clearLines(lastRow, lastCol, placedColor) {
         VisualPipe.emit("reset_cells", { indices: clearedIndices });
 
     } else {
-        nonClearCount++;
-        if (combo >= 2) { 
-            document.body.setAttribute('data-grace', nonClearCount);
-        }
-        if (nonClearCount >= 3) {
-            combo = 0;
-            nonClearCount = 0;
-            document.body.classList.remove('combo-active');
-            document.body.removeAttribute('data-grace');
-            SoundSystem.stopHeartbeat();
+        if (!isTutorialMode) {
+            nonClearCount++;
+            if (combo >= 2) { 
+                document.body.setAttribute('data-grace', nonClearCount);
+            }
+            if (nonClearCount >= 3) {
+                combo = 0;
+                nonClearCount = 0;
+                document.body.classList.remove('combo-active');
+                document.body.removeAttribute('data-grace');
+                SoundSystem.stopHeartbeat();
+            }
         }
     }
 }
@@ -468,6 +659,9 @@ let activeDrag = null;
 window.addEventListener('pointerdown', e => {
     if (isGameLocked) return; 
     
+    // HIDE HAND TEMPORARILY ON INTERACTION
+    removeHand(); 
+
     const slot = e.target.closest('.tray-slot');
     if (!slot || activeDrag) return;
     const piece = slot.querySelector('.piece');
@@ -623,9 +817,29 @@ window.addEventListener('pointerup', e => {
 
     if (canPlace(activeDrag.shape.data, row, col)) {
         
-        SoundSystem.play('place'); 
+        // --- STRICT TUTORIAL CHECK ---
+        if (isTutorialMode) {
+            const level = TUTORIAL_LEVELS[tutorialStage];
+            // If they drop it in the wrong spot, REJECT IT.
+            if (row !== level.targetRow || col !== level.targetCol) {
+                // Return to tray
+                activeDrag.source.style.visibility = "visible";
+                activeDrag.clone.remove();
+                activeDrag = null;
+                // RESTORE THE HAND IMMEDIATELY
+                restoreTutorialHand();
+                return; // Stop execution
+            }
+            // If correct, play the WIN sound immediately
+            SoundSystem.play('instant_win');
+        } else {
+            SoundSystem.play('place'); 
+            // RESTORED SCORE LOGIC
+            score += 5;
+            confirmedScore += 5;
+            updateUI();
+        }
         
-        score += 5; confirmedScore += 5; updateUI();
         const placedColor = activeDrag.color;
         const placementIndices = [];
         activeDrag.shape.data.forEach(([dx, dy]) => {
@@ -635,19 +849,58 @@ window.addEventListener('pointerup', e => {
         });
         VisualPipe.emit("piece_placed", { indices: placementIndices, color: placedColor });
         activeDrag.source.remove();
+        
+        activeDrag.clone.remove();
+        activeDrag = null;
+
         requestAnimationFrame(() => {
             clearLines(row, col, placedColor);
-            if (document.querySelectorAll(".tray-slot .piece").length === 0) spawnTrayPieces();
-            if (checkGameOver()) {
-                runGameOverSequence();
+            
+            if (isTutorialMode) {
+                isGameLocked = true;
+                setTimeout(() => {
+                    tutorialStage++;
+                    if (tutorialStage < TUTORIAL_LEVELS.length) {
+                        setupTutorialLevel(tutorialStage);
+                        isGameLocked = false;
+                    } else {
+                        // Tutorial Finished
+                        isTutorialMode = false;
+                        isGameLocked = false;
+                        localStorage.setItem('blox_tutorial_done', 'true');
+                        hideTutorialText(); // Ensure text is gone
+                        
+                        // Fade HUD In
+                        const topBar = document.querySelector('.top-bar');
+                        topBar.style.transition = 'opacity 1.0s ease-in';
+                        topBar.style.opacity = '1';
+                        topBar.style.pointerEvents = 'all';
+                        
+                        gridState.fill(0);
+                        cells.forEach(c => {
+                            c.className = "cell"; 
+                            c.style.removeProperty('--block-color');
+                        });
+                        
+                        spawnTrayPieces();
+                    }
+                }, 1200); 
+            } else {
+                if (document.querySelectorAll(".tray-slot .piece").length === 0) spawnTrayPieces();
+                if (checkGameOver()) {
+                    runGameOverSequence();
+                }
             }
         });
+
     } else { 
+        // Invalid Placement (Collision or Out of Bounds)
         activeDrag.source.style.visibility = "visible"; 
+        activeDrag.clone.remove();
+        activeDrag = null;
+        // Restore Hand if in Tutorial
+        if (isTutorialMode) restoreTutorialHand();
     }
-    
-    activeDrag.clone.remove();
-    activeDrag = null;
 });
 
 function cancelDrag() {
@@ -661,6 +914,9 @@ function cancelDrag() {
     });
     if (activeDrag.slot && activeDrag.id) { try { activeDrag.slot.releasePointerCapture(activeDrag.id); } catch (e) { } }
     activeDrag = null;
+    
+    // Restore Hand if interaction canceled
+    if (isTutorialMode) restoreTutorialHand();
 }
 window.addEventListener('pointercancel', cancelDrag);
 window.addEventListener('blur', cancelDrag);

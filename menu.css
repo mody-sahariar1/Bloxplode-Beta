@@ -224,7 +224,7 @@ body {
 .c11 { width: 25px; height: 25px; left: 75%; background: #FFA726; animation-duration: 13s; animation-delay: 1.5s; }
 .c12 { width: 40px; height: 40px; left: 45%; background: #FF1744; animation-duration: 19s; animation-delay: 8s; }
 
-/* --- CONSTRUCTED TROPHY STRUCTURE (NO SCROLL) --- */
+/* --- CONSTRUCTED TROPHY STRUCTURE (UPDATED FOR SCROLLING) --- */
 
 .map-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -246,19 +246,34 @@ body {
     align-items: center; justify-content: center;
     color: white; text-align: center;
     z-index: 2;
+    background: #3E50A4; /* Ensure opaque background for scrolling under */
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
 }
 
 .trophy-icon { font-size: 32px; margin-bottom: 5px; filter: drop-shadow(0 4px 0 rgba(0,0,0,0.2)); }
 .adv-title-group h1 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: 1px; }
 .adv-title-group p { margin: 2px 0 0; font-size: 12px; opacity: 0.7; font-weight: 300; }
 
-/* Structure Container */
+/* Structure Container (MODIFIED FOR SCROLLING) */
 .structure-container {
     flex: 1; /* Takes remaining space */
-    display: flex; justify-content: center; align-items: center; /* Center vertically & horizontally */
+    display: flex; 
+    flex-direction: column;
+    align-items: center; /* Center horizontally */
     width: 100%;
-    overflow: hidden; /* No Scroll */
+    
+    /* ENABLE SCROLLING */
+    overflow-y: auto; 
+    -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+    
+    /* Padding to prevent cut-off */
+    padding-top: 40px;
+    padding-bottom: 40px;
 }
+
+/* HIDE SCROLLBARS */
+.structure-container::-webkit-scrollbar { display: none; }
+.structure-container { -ms-overflow-style: none; scrollbar-width: none; }
 
 .pixel-structure {
     display: flex; flex-direction: column;

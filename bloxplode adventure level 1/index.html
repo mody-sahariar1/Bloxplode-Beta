@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Grid Puzzle</title>
+    <title>Level 1 - Bloxplode</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@800;900&family=Rubik+Mono+One&family=Nunito:wght@800;900&display=swap" rel="stylesheet">
@@ -52,7 +52,7 @@
         </div>
         
         <div class="game-over-buttons" id="go-buttons">
-            <div class="action-btn dormant" id="btn-home">
+            <div class="action-btn" id="btn-home">
                 <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
             </div>
             <div class="action-btn" id="btn-retry">
@@ -75,11 +75,11 @@
         </div>
 
         <div class="game-over-buttons victory-set" id="victory-buttons">
-            <div class="action-btn dormant" id="vic-btn-home">
+            <div class="action-btn" id="vic-btn-home">
                 <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
             </div>
             
-            <div class="action-btn dormant" id="vic-btn-retry">
+            <div class="action-btn" id="vic-btn-retry">
                 <svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm-8 8c0-1.01.25-1.97.7-2.8L3.24 7.74C2.46 8.97 2 10.43 2 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6z"/></svg>
             </div>
             
@@ -100,7 +100,62 @@
     
     <script src="script.js"></script>
     <script src="default-skin.js"></script>
-    
     <script src="../global-settings.js"></script>
+
+    <script>
+        (function() {
+            // 1. CONFIGURATION
+            const THIS_LEVEL = 1; 
+            const NEXT_LEVEL_URL = '../bloxplode adventure level 2/index.html';
+            const MENU_URL = '../index.html?returnTo=adventure';
+
+            // 2. WATCH FOR VICTORY
+            // We use an observer to detect when the 'hidden' class is removed from the victory screen
+            const victoryScreen = document.getElementById('victory-ui-layer');
+            if (victoryScreen) {
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.attributeName === 'class' && !victoryScreen.classList.contains('hidden')) {
+                            saveProgress();
+                        }
+                    });
+                });
+                observer.observe(victoryScreen, { attributes: true });
+            }
+
+            // 3. SAVE FUNCTION
+            function saveProgress() {
+                console.log("Victory detected! Saving progress...");
+                let saved = parseInt(localStorage.getItem('blox_adv_progress')) || 1;
+                
+                // If we just beat the highest unlocked level, unlock the next one
+                if (THIS_LEVEL >= saved) {
+                    localStorage.setItem('blox_adv_progress', THIS_LEVEL + 1);
+                }
+            }
+
+            // 4. BUTTON NAVIGATION
+            // We manually attach click events here to ensure they go to the right files
+            
+            // A. Home Button (Victory Screen)
+            document.getElementById('vic-btn-home').addEventListener('click', () => {
+                window.location.href = MENU_URL;
+            });
+            // B. Home Button (Game Over Screen)
+            document.getElementById('btn-home').addEventListener('click', () => {
+                window.location.href = MENU_URL;
+            });
+
+            // C. Next Level Button
+            document.getElementById('vic-btn-next').addEventListener('click', () => {
+                window.location.href = NEXT_LEVEL_URL;
+            });
+
+            // D. Retry Buttons
+            document.getElementById('vic-btn-retry').addEventListener('click', () => location.reload());
+            document.getElementById('btn-retry').addEventListener('click', () => location.reload());
+
+        })();
+    </script>
 </body>
 </html>

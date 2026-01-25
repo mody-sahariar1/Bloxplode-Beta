@@ -128,38 +128,47 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-/* 2. BEST SCORE (TOP LEFT - LIFTED HIGHER) */
+/* 2. BEST SCORE (TOP LEFT - CAPSULE CONTAINER) */
 .score-box:last-child {
     position: absolute;
-    top: -25px; 
+    /* MOVED UP: Adjusted from -15px to -30px to prevent overlap with high scores */
+    top: -30px; 
     left: 0; 
     
-    background: transparent;
+    /* THE CAPSULE LOOK */
+    background: rgba(0, 0, 0, 0.25); 
+    border-radius: 30px;             
+    padding: 6px 16px;               
+    
     border: none;
     box-shadow: none;
-    padding: 0;
     min-width: auto;
     
     display: flex;
     flex-direction: row; 
     align-items: center;
-    gap: 6px;
+    gap: 10px; 
 }
 
+/* (The rest of the CSS for .label and #best-score remains the same) */
 .score-box:last-child .label { font-size: 0; } 
 
 .score-box:last-child .label::before {
     content: '👑'; 
-    font-size: 24px; 
+    font-size: 22px; 
     filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+    display: block;
+    line-height: 1;
 }
 
 #best-score { 
     font-family: 'Nunito', sans-serif;
-    font-size: 24px; 
+    font-size: 20px; 
     font-weight: 800; 
-    color: #FFD700; 
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    color: #ffffff; 
+    text-shadow: none; 
+    line-height: 1;
+    margin-top: 2px; 
 }
 
 /* =====================================================
@@ -1127,4 +1136,171 @@ body:has(.combo-popup[style*="00ffcc"]) {
     0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
     25% { opacity: 1; }
     100% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)); opacity: 0; }
+}
+
+/* --- TUTORIAL HAND ANIMATION --- */
+.tutorial-hand {
+    position: fixed;
+    z-index: 9999;
+    font-size: 40px; /* Size of the hand */
+    pointer-events: none;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+    will-change: transform, opacity;
+    transition: opacity 0.3s;
+}
+
+/* The actual hand icon (using an emoji for instant compatibility) */
+.tutorial-hand::before {
+    content: '👆'; 
+    display: block;
+    transform: rotate(-30deg); /* Tilt it to look natural */
+}
+
+/* The "Press" Animation */
+@keyframes hand-press {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.8); }
+    100% { transform: scale(1); }
+}
+
+/* The "Guide" Motion (Tray to Grid) */
+@keyframes hand-guide {
+    0% { transform: translate(0, 0); opacity: 0; }
+    20% { opacity: 1; transform: translate(0, 0); } /* Start at Tray */
+    30% { transform: scale(0.9); } /* Press */
+    70% { transform: translate(var(--move-x), var(--move-y)); } /* Move to Grid */
+    80% { transform: translate(var(--move-x), var(--move-y)) scale(0.9); } /* Release */
+    100% { transform: translate(var(--move-x), var(--move-y)); opacity: 0; }
+}
+
+.hand-active {
+    animation: hand-guide 2.5s infinite;
+}
+
+/* ============================================
+   TUTORIAL GHOST DRAG SYSTEM (DOM-LOCKED)
+   ============================================ */
+
+.tutorial-wrapper {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    top: 0; left: 0;
+    
+    /* Variables set by JS */
+    --start-x: 0px;
+    --start-y: 0px;
+    --move-x: 0px;
+    --move-y: 0px;
+    --scale: 1; 
+    
+    /* 3.5s Duration (Relaxed) */
+    animation: guide-float-path 3.5s infinite cubic-bezier(0.2, 0.6, 0.3, 1);
+    will-change: transform, opacity;
+    
+    transform-origin: top left;
+}
+
+/* 1. The Hand Icon - IMAGE BASED (LARGER) */
+.tutorial-hand-img {
+    /* INCREASED SIZE: From 90px to 160px */
+    width: 160px; 
+    height: 160px;
+    
+    position: absolute;
+    z-index: 2147483647; /* Max Z-Index */
+    
+    top: 50%; 
+    left: 50%;
+    
+    /* ALIGNMENT ADJUSTMENT:
+       Since the image is bigger, we tweak the offset slightly to keep 
+       the fingertip right on the target block.
+    */
+    transform: translate(-25%, -15%); 
+    
+    /* THE IMAGE SOURCE */
+    background-image: url('hand.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    
+    /* Stronger shadow for the larger element */
+    filter: drop-shadow(0 15px 15px rgba(0,0,0,0.4));
+    
+    pointer-events: none;
+}
+
+/* 2. KILL THE OLD EMOJI (Force Removal) */
+.tutorial-hand-img::before {
+    content: none !important;
+    display: none !important;
+}
+
+/* 2. The Ghost Piece */
+.tutorial-ghost-piece {
+    position: relative; 
+    opacity: 0.9; 
+    filter: brightness(1.1) drop-shadow(0 10px 20px rgba(0,0,0,0.4));
+}
+
+.tutorial-ghost-piece .block {
+    position: absolute;
+    box-shadow: inset 3px 3px 0px 0px rgba(255,255,255,0.5),
+                inset -3px -3px 0px 0px rgba(0,0,0,0.2);
+    border-radius: 6px;
+}
+
+/* --- THE ANIMATION LOOP --- */
+@keyframes guide-float-path {
+    0% {
+        opacity: 0;
+        transform: translate(var(--start-x), var(--start-y)) scale(var(--scale));
+    }
+    15% {
+        opacity: 1;
+        transform: translate(var(--start-x), var(--start-y)) scale(var(--scale)); 
+    }
+    30% {
+        transform: translate(var(--start-x), calc(var(--start-y) - 20px)) scale(calc(var(--scale) * 1.1)); 
+    }
+    60% {
+        transform: translate(calc(var(--start-x) + var(--move-x)), calc(var(--start-y) + var(--move-y))) scale(var(--scale)); 
+    }
+    85% {
+        opacity: 1;
+        transform: translate(calc(var(--start-x) + var(--move-x)), calc(var(--start-y) + var(--move-y))) scale(var(--scale)); 
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(var(--start-x) + var(--move-x)), calc(var(--start-y) + var(--move-y))) scale(var(--scale));
+    }
+}
+
+/* --- TUTORIAL INSTRUCTION TEXT --- */
+.tutorial-text {
+    position: absolute;
+    top: 40px; /* Sits inside the empty header space */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    
+    font-family: 'Nunito', sans-serif; /* Matches game aesthetic */
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffffff;
+    text-align: center;
+    line-height: 1.3;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    
+    z-index: 2000;
+    pointer-events: none;
+    
+    opacity: 0;
+    animation: fade-in-text 0.6s ease-out forwards 0.5s;
+}
+
+@keyframes fade-in-text {
+    0% { opacity: 0; transform: translate(-50%, 10px); }
+    100% { opacity: 1; transform: translate(-50%, 0); }
 }

@@ -3,36 +3,44 @@
    Theme: Blue/Purple Glossy (Stratos Aesthetic)
    ========================================================= */
 
-/* --- 1. THE GEAR ICON (AUTO-INJECTED) --- */
+/* --- 1. THE GEAR ICON (UPDATED: Smaller, Higher, Transparent) --- */
 #universal-gear-btn {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 50px;
-    height: 50px;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(5px);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* MOVED UP: Pushed to 5px from top to clear the game UI */
+    top: 5px; 
+    right: 15px;
+    
+    /* SMALLER SIZE: Reduced by ~30% (was 50px) */
+    width: 35px;
+    height: 35px;
+    
+    /* TRANSPARENT: No background, no border, no blur */
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    
+    border-radius: 50%; /* Circular touch target */
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
     z-index: 99999;
-    transition: transform 0.2s ease, background 0.2s;
+    transition: transform 0.2s ease, opacity 0.2s;
     -webkit-tap-highlight-color: transparent;
 }
 
 #universal-gear-btn svg {
-    width: 28px;
-    height: 28px;
+    /* SMALLER ICON: Reduced to 20px (was 28px) */
+    width: 20px;
+    height: 20px;
     fill: #ffffff;
-    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+    /* Added slightly stronger shadow for visibility since background is gone */
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
 #universal-gear-btn:active {
-    transform: scale(0.9);
-    background: rgba(0, 0, 0, 0.6);
+    transform: scale(0.9) rotate(90deg); /* Added rotation for feedback */
+    opacity: 0.7;
 }
 
 /* --- 2. THE MODAL OVERLAY --- */

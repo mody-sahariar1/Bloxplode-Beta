@@ -5,23 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Bloxplode</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@600;700;800;900&family=Rubik+Mono+One&family=Inter:wght@300;600&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="menu.css">
-</head>
+    </head>
 <body>
 
     <div id="bg-particles" class="particles-layer">
-        <div class="cube c1"></div>
-        <div class="cube c2"></div>
-        <div class="cube c3"></div>
-        <div class="cube c4"></div>
-        <div class="cube c5"></div>
-        <div class="cube c6"></div>
-        <div class="cube c7"></div>
-        <div class="cube c8"></div>
-        <div class="cube c9"></div>
-        <div class="cube c10"></div>
-        <div class="cube c11"></div>
-        <div class="cube c12"></div>
+        <div class="cube c1"></div><div class="cube c2"></div><div class="cube c3"></div>
+        <div class="cube c4"></div><div class="cube c5"></div><div class="cube c6"></div>
+        <div class="cube c7"></div><div class="cube c8"></div><div class="cube c9"></div>
+        <div class="cube c10"></div><div class="cube c11"></div><div class="cube c12"></div>
     </div>
 
     <div id="stratos-splash">
@@ -38,33 +31,25 @@
         </div>
         <div class="loading-zone" id="loader">
             <div class="loading-label">LOADING...</div>
-            <div class="progress-track">
-                <div class="progress-fill"></div>
-            </div>
+            <div class="progress-track"><div class="progress-fill"></div></div>
         </div>
     </div>
 
     <div class="bottom-ui-layer hidden" id="menu-buttons-layer">
         <div id="main-menu" class="button-stack">
             <a href="classic/index.html" class="pill-btn green-pill">
-                <div class="mini-grid-icon">
-                    <div class="mg-cell" style="font-size: 20px; line-height: 1;">∞</div>
-                </div>
+                <div class="mini-grid-icon"><div class="mg-cell">∞</div></div>
                 <span class="pill-text">Classic</span>
             </a>
             
             <button onclick="openAdventureMap()" class="pill-btn orange-pill">
-                <div class="mini-grid-icon">
-                    <div class="mg-cell">💎</div>
-                    <div class="mg-cell">⏱️</div>
-                </div>
+                <div class="mini-grid-icon"><div class="mg-cell">💎</div><div class="mg-cell">⏱️</div></div>
                 <span class="pill-text">Adventure</span>
             </button>
         </div>
     </div>
 
     <div id="adventure-map-screen" class="map-overlay hidden">
-        
         <div class="adv-header">
             <div class="trophy-icon">🏆</div>
             <div class="adv-title-group">
@@ -74,28 +59,21 @@
         </div>
 
         <div class="structure-container">
-            <div id="level-grid-structure" class="pixel-structure">
-                </div>
+            <div id="level-grid-structure" class="pixel-structure"></div>
         </div>
 
         <div class="bottom-action-panel">
-            <a href="bloxplode%20adventure%20level%201/index.html" class="big-play-btn">
-                PLAY LEVEL 1
-            </a>
+            <a href="#" id="play-current-btn" class="big-play-btn">PLAY LEVEL 1</a>
             <div class="nav-tabs">
-                <button onclick="closeAdventureMap()" class="nav-tab">
-                    <span class="tab-icon">🏠</span>
-                </button>
-                <div class="nav-tab active">
-                    <span class="tab-icon">💎</span>
-                </div>
+                <button onclick="closeAdventureMap()" class="nav-tab"><span class="tab-icon">🏠</span></button>
+                <div class="nav-tab active"><span class="tab-icon">💎</span></div>
             </div>
         </div>
-
     </div>
 
     <script>
         window.onload = function() {
+            // --- BOOT SEQUENCE ---
             const stratos = document.getElementById('stratos-splash');
             const bootLayer = document.getElementById('game-boot-layer');
             const masterLogo = document.getElementById('master-logo');
@@ -103,60 +81,81 @@
             const menuButtons = document.getElementById('menu-buttons-layer');
             const particles = document.getElementById('bg-particles');
 
-            // --- 1. SMART BOOT LOGIC (THE FIX) ---
-            // "Have we started the game in this session yet?"
+            // 1. CHECK TUTORIAL STATUS FROM MEMORY
+            // If 'blox_tutorial_done' is anything other than 'true', they are a new player.
+            const isTutorialDone = localStorage.getItem('blox_tutorial_done') === 'true';
+
+            // Check if we need to show intro (Session based)
             if (sessionStorage.getItem('gameStarted') === 'true') {
-                
-                // CASE: RETURNING USER (Skip Intro)
-                
-                // 1. Instantly hide Splash & Loader
-                stratos.style.display = 'none';
+                // SKIP INTRO ANIMATIONS
+                stratos.style.display = 'none'; 
                 loader.style.display = 'none';
+                
+                // --- REDIRECTION LOGIC (Fast) ---
+                if (!isTutorialDone) {
+                    // New player? Send them straight to the game folder.
+                    // The script_v4.js inside will detect they need the tutorial.
+                    window.location.href = 'classic/index.html';
+                    return; 
+                }
 
-                // 2. Instantly place Logo at top (Disable transition for snap)
-                masterLogo.style.transition = 'none'; 
-                masterLogo.classList.add('move-to-header');
-
-                // 3. SHOW MENU (With Fade In)
-                menuButtons.classList.remove('hidden');
-                menuButtons.classList.add('animate-entry'); // Ensures buttons fade in
-                particles.classList.add('active');
-
-                // 4. Restore logo transitions (so it floats gently)
-                setTimeout(() => { masterLogo.style.transition = ''; }, 100);
+                // If Veteran Player, Show Menu
+                masterLogo.classList.add('move-to-header'); 
+                masterLogo.style.transition = 'none';
+                menuButtons.classList.remove('hidden'); 
+                menuButtons.classList.add('animate-entry');
+                particles.classList.add('active'); 
+                setTimeout(() => masterLogo.style.transition = '', 100);
 
             } else {
-
-                // CASE: FRESH APP START (Play Intro)
-                // Mark game as started so next time we skip
+                // PLAY FULL INTRO SEQUENCE
                 sessionStorage.setItem('gameStarted', 'true');
-
-                // Play the 9-second sequence
+                
+                // 1. Stratos Splash
                 setTimeout(() => { stratos.classList.add('fade-out'); bootLayer.classList.add('active'); }, 4000);
-                setTimeout(() => { loader.style.opacity = '0'; setTimeout(() => { loader.style.display = 'none'; }, 200); }, 8800);
+                
+                // 2. Loading Bar Finishes
                 setTimeout(() => { 
-                    masterLogo.classList.add('move-to-header'); 
-                    menuButtons.classList.remove('hidden'); 
-                    menuButtons.classList.add('animate-entry'); 
-                    particles.classList.add('active');
+                    loader.style.opacity = '0'; 
+                    setTimeout(() => loader.style.display = 'none', 200); 
+                }, 8800);
+
+                // 3. DECISION MOMENT (9 Seconds in)
+                setTimeout(() => { 
+                    if (!isTutorialDone) {
+                        // REDIRECT: New Player -> Tutorial
+                        window.location.href = 'classic/index.html';
+                    } else {
+                        // REVEAL: Veteran Player -> Main Menu
+                        masterLogo.classList.add('move-to-header'); 
+                        menuButtons.classList.remove('hidden'); 
+                        menuButtons.classList.add('animate-entry'); 
+                        particles.classList.add('active');
+                    }
+                    
                     setTimeout(() => stratos.style.display = 'none', 500);
                 }, 9000);
             }
 
-            // Generate Map
+            // Build the Trophy Grid for Adventure Mode
             generateStructure();
-
-            // --- 2. BACK BUTTON HANDLER ---
-            window.addEventListener('popstate', function(event) {
-                closeMapUI(); 
-            });
+            
+            // Handle browser back button logic
+            window.addEventListener('popstate', closeMapUI);
         };
 
         function generateStructure() {
             const container = document.getElementById('level-grid-structure');
-            let rowsHTML = [];
+            const playBtn = document.getElementById('play-current-btn');
+            
+            // 1. GET SAVE DATA
+            const currentMaxLevel = parseInt(localStorage.getItem('blox_adv_progress')) || 1;
 
-            // 12x10 Grid Logic for Trophy Shape
+            // Update the big green button
+            playBtn.innerHTML = `PLAY LEVEL ${currentMaxLevel}`;
+            playBtn.href = `bloxplode adventure level ${currentMaxLevel}/index.html`;
+
+            // 2. DEFINE THE TROPHY SHAPE (1 = Level, 0 = Empty)
             const trophyGrid = [
                 [0,0,1,1,1,1,1,1,0,0], 
                 [0,1,1,1,1,1,1,1,1,0], 
@@ -172,21 +171,34 @@
                 [1,1,1,1,1,1,1,1,1,1], 
             ];
             
+            let rowsHTML = [];
             let levelCounter = 1;
 
-            // Build grid Bottom-Up
+            // 3. BUILD ROWS (Loop Bottom to Top)
             for (let r = trophyGrid.length - 1; r >= 0; r--) {
                 let rowHTML = '<div class="struct-row">';
                 for (let c = 0; c < 10; c++) {
-                    if (trophyGrid[r][c] === 1 && levelCounter <= 100) {
+                    
+                    if (trophyGrid[r][c] === 1) {
                         let lvl = levelCounter;
                         let classes = 'struct-block';
-                        
-                        if (lvl === 1) classes += ' gold pulse';
-                        else if (lvl <= 5) classes += ' blue';
-                        else classes += ' locked';
+                        let isLocked = false;
 
-                        rowHTML += `<a href="bloxplode%20adventure%20level%20${lvl}/index.html" class="${classes}">${lvl}</a>`;
+                        if (lvl < currentMaxLevel) {
+                            classes += ' blue';
+                        } else if (lvl === currentMaxLevel) {
+                            classes += ' gold pulse';
+                        } else {
+                            classes += ' locked';
+                            isLocked = true;
+                        }
+
+                        if (isLocked) {
+                            rowHTML += `<div class="${classes}">${lvl}</div>`;
+                        } else {
+                            rowHTML += `<a href="bloxplode adventure level ${lvl}/index.html" class="${classes}">${lvl}</a>`;
+                        }
+                        
                         levelCounter++;
                     } else {
                         rowHTML += `<div class="struct-block empty"></div>`;
@@ -196,12 +208,14 @@
                 rowsHTML.unshift(rowHTML); 
             }
             container.innerHTML = rowsHTML.join('');
+            
+            setTimeout(() => {
+                container.scrollTop = container.scrollHeight;
+            }, 100);
         }
 
-        // --- 3. OPEN MAP (Push History State) ---
         function openAdventureMap() {
             history.pushState({ modal: 'adventure' }, 'Adventure', '#adventure');
-
             document.getElementById('menu-buttons-layer').classList.add('hidden');
             document.getElementById('master-logo').classList.add('hidden');
             
@@ -210,18 +224,15 @@
             setTimeout(() => { mapScreen.classList.add('active'); }, 10);
         }
 
-        // --- 4. CLOSE MAP (Trigger Back) ---
         function closeAdventureMap() {
             history.back();
         }
 
-        // --- 5. UI CLOSING LOGIC ---
         function closeMapUI() {
             const mapScreen = document.getElementById('adventure-map-screen');
             
             if (mapScreen.classList.contains('active')) {
                 mapScreen.classList.remove('active');
-                
                 setTimeout(() => {
                     mapScreen.classList.add('hidden');
                     document.getElementById('menu-buttons-layer').classList.remove('hidden');

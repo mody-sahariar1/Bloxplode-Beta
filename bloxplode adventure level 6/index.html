@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>Gem Adventure</title>
+    <title>Gem Adventure - Level 6</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@1,900&family=Rubik+Mono+One&family=Nunito:wght@800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     
@@ -89,5 +89,51 @@
     <script src="default-skin.js"></script>
     
     <script src="../global-settings.js"></script>
+
+    <script>
+        (function() {
+            // --- CONFIGURATION FOR LEVEL 6 ---
+            const THIS_LEVEL = 6; 
+            const NEXT_LEVEL_URL = '../bloxplode adventure level 7/index.html'; 
+            const MENU_URL = '../index.html?returnTo=adventure';
+
+            // 1. WATCH FOR VICTORY
+            const victoryScreen = document.getElementById('victory-ui-layer');
+            if (victoryScreen) {
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.attributeName === 'class' && !victoryScreen.classList.contains('hidden')) {
+                            saveProgress();
+                        }
+                    });
+                });
+                observer.observe(victoryScreen, { attributes: true });
+            }
+
+            // 2. SAVE PROGRESS LOGIC
+            function saveProgress() {
+                let saved = parseInt(localStorage.getItem('blox_adv_progress')) || 1;
+                // If we beat the highest unlocked level, unlock Level 7
+                if (THIS_LEVEL >= saved) {
+                    localStorage.setItem('blox_adv_progress', THIS_LEVEL + 1);
+                }
+            }
+
+            // 3. BUTTON NAVIGATION
+            // Home
+            document.getElementById('vic-btn-home').addEventListener('click', () => { window.location.href = MENU_URL; });
+            document.getElementById('btn-home').addEventListener('click', () => { window.location.href = MENU_URL; });
+            
+            // Next Level (Goes to Level 7)
+            document.getElementById('vic-btn-next').addEventListener('click', () => {
+                window.location.href = NEXT_LEVEL_URL;
+            });
+
+            // Retry
+            document.getElementById('vic-btn-retry').addEventListener('click', () => location.reload());
+            document.getElementById('btn-retry').addEventListener('click', () => location.reload());
+
+        })();
+    </script>
 </body>
 </html>
