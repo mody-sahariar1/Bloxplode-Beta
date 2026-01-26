@@ -224,11 +224,10 @@ body {
 .c11 { width: 25px; height: 25px; left: 75%; background: #FFA726; animation-duration: 13s; animation-delay: 1.5s; }
 .c12 { width: 40px; height: 40px; left: 45%; background: #FF1744; animation-duration: 19s; animation-delay: 8s; }
 
-/* --- CONSTRUCTED TROPHY STRUCTURE (UPDATED FOR SCROLLING) --- */
+/* --- CONSTRUCTED TROPHY STRUCTURE (STATIC NO SCROLL) --- */
 
 .map-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    /* Main Game Blue Background */
     background: #3E50A4; 
     z-index: 100;
     display: flex; flex-direction: column;
@@ -240,69 +239,61 @@ body {
 
 /* Header */
 .adv-header {
-    height: 15vh; /* Responsive height */
+    height: 15vh;
     width: 100%;
     display: flex; flex-direction: column; 
     align-items: center; justify-content: center;
     color: white; text-align: center;
     z-index: 2;
-    background: #3E50A4; /* Ensure opaque background for scrolling under */
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
 }
 
 .trophy-icon { font-size: 32px; margin-bottom: 5px; filter: drop-shadow(0 4px 0 rgba(0,0,0,0.2)); }
 .adv-title-group h1 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: 1px; }
 .adv-title-group p { margin: 2px 0 0; font-size: 12px; opacity: 0.7; font-weight: 300; }
 
-/* Structure Container (MODIFIED FOR SCROLLING) */
+/* Structure Container (STATIC CENTERED) */
 .structure-container {
-    flex: 1; /* Takes remaining space */
+    flex: 1; 
     display: flex; 
     flex-direction: column;
-    align-items: center; /* Center horizontally */
+    align-items: center;
+    justify-content: center; /* Center Vertically */
     width: 100%;
-    
-    /* ENABLE SCROLLING */
-    overflow-y: auto; 
-    -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
-    
-    /* Padding to prevent cut-off */
-    padding-top: 40px;
-    padding-bottom: 40px;
+    overflow: hidden; /* No scrolling */
+    padding: 5px;
 }
-
-/* HIDE SCROLLBARS */
-.structure-container::-webkit-scrollbar { display: none; }
-.structure-container { -ms-overflow-style: none; scrollbar-width: none; }
 
 .pixel-structure {
     display: flex; flex-direction: column;
     align-items: center;
-    /* No gaps between rows */
 }
 
 .struct-row {
     display: flex;
     justify-content: center;
-    /* No gaps between columns */
+    height: 4.2vh; /* Adjusted for 12 rows (90 levels) */
 }
 
 /* THE BRICKS */
 .struct-block {
-    /* Responsive Size: Calc ensures 12 rows fit in ~60% of screen height */
-    width: 4.5vh; 
-    height: 4.5vh;
-    /* Max width constraint for desktops */
-    max-width: 40px; max-height: 40px;
+    /* FIT 12 ROWS (90 Levels) 
+       Available space is approx 60vh. 
+       We use 4.2vh per block to fit all 12 rows without overflow.
+    */
+    width: 8vw; 
+    height: 4.2vh;
+    
+    max-width: 38px; 
+    max-height: 38px;
     
     display: flex; justify-content: center; align-items: center;
     font-family: 'Kanit', sans-serif; font-weight: 700; 
-    font-size: 1.4vh; /* Text scales with block */
+    font-size: 1.4vh; /* Text scales with height */
     text-decoration: none;
     
-    /* THE BRICK LOOK */
-    border: 1px solid rgba(0,0,0,0.15); /* Dark borders define grid */
-    box-sizing: border-box; /* Include border in size */
+    border: 1px solid rgba(0,0,0,0.15); 
+    box-sizing: border-box; 
+    margin: 0; padding: 0;
 }
 
 .struct-block.empty {
@@ -313,20 +304,20 @@ body {
 
 /* 1. LOCKED (Dark Structure) */
 .struct-block.locked {
-    background: #283593; /* Dark Navy Brick */
+    background: #283593; 
     color: rgba(255, 255, 255, 0.15);
 }
 
 /* 2. UNLOCKED (Blue) */
 .struct-block.blue {
-    background: #42A5F5; /* Bright Blue */
+    background: #42A5F5; 
     color: white;
-    border: 1px solid rgba(255,255,255,0.2); /* Light border for cleared */
+    border: 1px solid rgba(255,255,255,0.2); 
 }
 
 /* 3. TARGET (Gold) */
 .struct-block.gold {
-    background: #FFCA28; /* Gold */
+    background: #FFCA28; 
     color: white;
     z-index: 5;
     position: relative;
@@ -340,7 +331,7 @@ body {
 
 /* Bottom Action Panel */
 .bottom-action-panel {
-    height: 20vh; /* Fixed bottom area */
+    height: 20vh; 
     background: #303F9F; 
     padding: 20px;
     border-top-left-radius: 24px; border-top-right-radius: 24px;

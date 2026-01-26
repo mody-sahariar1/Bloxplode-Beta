@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@600;700;800;900&family=Rubik+Mono+One&family=Inter:wght@300;600&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="menu.css">
+    <link rel="stylesheet" href="global-settings.css">
     </head>
 <body>
 
@@ -71,9 +72,9 @@
         </div>
     </div>
 
-    <script>
+   <script>
         window.onload = function() {
-            // --- BOOT SEQUENCE ---
+            // --- BOOT SEQUENCE REFERENCES ---
             const stratos = document.getElementById('stratos-splash');
             const bootLayer = document.getElementById('game-boot-layer');
             const masterLogo = document.getElementById('master-logo');
@@ -81,25 +82,42 @@
             const menuButtons = document.getElementById('menu-buttons-layer');
             const particles = document.getElementById('bg-particles');
 
-            // 1. CHECK TUTORIAL STATUS FROM MEMORY
-            // If 'blox_tutorial_done' is anything other than 'true', they are a new player.
+            // 1. DIRECT LINK CHECK (The Fix)
+            // If the URL contains '?returnTo=adventure', skip intro and open map immediately
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('returnTo') === 'adventure') {
+                // Kill Intro Animations
+                stratos.style.display = 'none';
+                loader.style.display = 'none';
+                
+                // Prepare Environment
+                sessionStorage.setItem('gameStarted', 'true');
+                particles.classList.add('active');
+                
+                // Hide Boot Layer & Logo (Map needs them hidden)
+                bootLayer.style.display = 'none'; 
+                masterLogo.classList.add('hidden');
+                
+                // Open The Map
+                generateStructure(); // Ensure grid is built
+                openAdventureMap();  // Show the map screen
+                return; // Stop the rest of the boot sequence
+            }
+
+            // 2. CHECK TUTORIAL STATUS
             const isTutorialDone = localStorage.getItem('blox_tutorial_done') === 'true';
 
-            // Check if we need to show intro (Session based)
+            // 3. SESSION CHECK (Have we seen the intro yet?)
             if (sessionStorage.getItem('gameStarted') === 'true') {
-                // SKIP INTRO ANIMATIONS
+                // SKIP INTRO
                 stratos.style.display = 'none'; 
                 loader.style.display = 'none';
                 
-                // --- REDIRECTION LOGIC (Fast) ---
                 if (!isTutorialDone) {
-                    // New player? Send them straight to the game folder.
-                    // The script_v4.js inside will detect they need the tutorial.
                     window.location.href = 'classic/index.html';
                     return; 
                 }
 
-                // If Veteran Player, Show Menu
                 masterLogo.classList.add('move-to-header'); 
                 masterLogo.style.transition = 'none';
                 menuButtons.classList.remove('hidden'); 
@@ -108,39 +126,29 @@
                 setTimeout(() => masterLogo.style.transition = '', 100);
 
             } else {
-                // PLAY FULL INTRO SEQUENCE
+                // PLAY FULL INTRO
                 sessionStorage.setItem('gameStarted', 'true');
                 
-                // 1. Stratos Splash
                 setTimeout(() => { stratos.classList.add('fade-out'); bootLayer.classList.add('active'); }, 4000);
-                
-                // 2. Loading Bar Finishes
                 setTimeout(() => { 
                     loader.style.opacity = '0'; 
                     setTimeout(() => loader.style.display = 'none', 200); 
                 }, 8800);
 
-                // 3. DECISION MOMENT (9 Seconds in)
                 setTimeout(() => { 
                     if (!isTutorialDone) {
-                        // REDIRECT: New Player -> Tutorial
                         window.location.href = 'classic/index.html';
                     } else {
-                        // REVEAL: Veteran Player -> Main Menu
                         masterLogo.classList.add('move-to-header'); 
                         menuButtons.classList.remove('hidden'); 
                         menuButtons.classList.add('animate-entry'); 
                         particles.classList.add('active');
                     }
-                    
                     setTimeout(() => stratos.style.display = 'none', 500);
                 }, 9000);
             }
 
-            // Build the Trophy Grid for Adventure Mode
             generateStructure();
-            
-            // Handle browser back button logic
             window.addEventListener('popstate', closeMapUI);
         };
 
@@ -148,14 +156,12 @@
             const container = document.getElementById('level-grid-structure');
             const playBtn = document.getElementById('play-current-btn');
             
-            // 1. GET SAVE DATA
             const currentMaxLevel = parseInt(localStorage.getItem('blox_adv_progress')) || 1;
 
-            // Update the big green button
             playBtn.innerHTML = `PLAY LEVEL ${currentMaxLevel}`;
             playBtn.href = `bloxplode adventure level ${currentMaxLevel}/index.html`;
 
-            // 2. DEFINE THE TROPHY SHAPE (1 = Level, 0 = Empty)
+            // 12 Rows. 90 Levels Total.
             const trophyGrid = [
                 [0,0,1,1,1,1,1,1,0,0], 
                 [0,1,1,1,1,1,1,1,1,0], 
@@ -174,31 +180,19 @@
             let rowsHTML = [];
             let levelCounter = 1;
 
-            // 3. BUILD ROWS (Loop Bottom to Top)
             for (let r = trophyGrid.length - 1; r >= 0; r--) {
                 let rowHTML = '<div class="struct-row">';
                 for (let c = 0; c < 10; c++) {
-                    
                     if (trophyGrid[r][c] === 1) {
                         let lvl = levelCounter;
                         let classes = 'struct-block';
                         let isLocked = false;
+                        if (lvl < currentMaxLevel) { classes += ' blue'; } 
+                        else if (lvl === currentMaxLevel) { classes += ' gold pulse'; } 
+                        else { classes += ' locked'; isLocked = true; }
 
-                        if (lvl < currentMaxLevel) {
-                            classes += ' blue';
-                        } else if (lvl === currentMaxLevel) {
-                            classes += ' gold pulse';
-                        } else {
-                            classes += ' locked';
-                            isLocked = true;
-                        }
-
-                        if (isLocked) {
-                            rowHTML += `<div class="${classes}">${lvl}</div>`;
-                        } else {
-                            rowHTML += `<a href="bloxplode adventure level ${lvl}/index.html" class="${classes}">${lvl}</a>`;
-                        }
-                        
+                        if (isLocked) { rowHTML += `<div class="${classes}">${lvl}</div>`; } 
+                        else { rowHTML += `<a href="bloxplode adventure level ${lvl}/index.html" class="${classes}">${lvl}</a>`; }
                         levelCounter++;
                     } else {
                         rowHTML += `<div class="struct-block empty"></div>`;
@@ -208,14 +202,12 @@
                 rowsHTML.unshift(rowHTML); 
             }
             container.innerHTML = rowsHTML.join('');
-            
-            setTimeout(() => {
-                container.scrollTop = container.scrollHeight;
-            }, 100);
         }
 
         function openAdventureMap() {
             history.pushState({ modal: 'adventure' }, 'Adventure', '#adventure');
+            
+            // Ensure main menu elements are hidden
             document.getElementById('menu-buttons-layer').classList.add('hidden');
             document.getElementById('master-logo').classList.add('hidden');
             
@@ -224,22 +216,33 @@
             setTimeout(() => { mapScreen.classList.add('active'); }, 10);
         }
 
-        function closeAdventureMap() {
-            history.back();
+      function closeAdventureMap() {
+            closeMapUI();
         }
 
+        // FIXED: HANDLES RE-ENTRY FROM 'RETURNTO' PARAM
         function closeMapUI() {
             const mapScreen = document.getElementById('adventure-map-screen');
             
-            if (mapScreen.classList.contains('active')) {
-                mapScreen.classList.remove('active');
-                setTimeout(() => {
-                    mapScreen.classList.add('hidden');
-                    document.getElementById('menu-buttons-layer').classList.remove('hidden');
-                    document.getElementById('master-logo').classList.remove('hidden');
-                }, 300);
-            }
+            mapScreen.classList.remove('active');
+            
+            setTimeout(() => {
+                mapScreen.classList.add('hidden');
+                
+                // 1. Restore Parent Boot Layer (Was hidden by returnTo logic)
+                document.getElementById('game-boot-layer').style.display = 'flex';
+
+                // 2. Restore Main Menu & Add Animation Class (Fixes Opacity 0 bug)
+                const menuLayer = document.getElementById('menu-buttons-layer');
+                menuLayer.classList.remove('hidden');
+                menuLayer.classList.add('animate-entry');
+
+                // 3. Restore Logo
+                document.getElementById('master-logo').classList.remove('hidden');
+                document.getElementById('master-logo').classList.add('move-to-header'); 
+            }, 300);
         }
     </script>
+    <script src="global-settings.js"></script>
 </body>
 </html>
