@@ -1,13 +1,50 @@
 /* =========================================================
-   UNIVERSAL SETTINGS MODULE - AUDIO CORE V2
-   Fixes: Background Sleep, Resume delays, Cross-page sync
-   PLUS: Global Navigation Fixes
-   PLUS: Sound Cut-off Fix & Rapid Fire Support
-   PLUS: HAPTIC FEEDBACK (25ms)
-   PLUS: HEARTBEAT SLEEP FIX (Breathing Sound Stops on Minimize)
+   UNIVERSAL SETTINGS MODULE - AUDIO CORE V2 + ANALYTICS (AUTO-TRACK)
    ========================================================= */
 
 (function() {
+    // --- 0. FIREBASE ANALYTICS (AUTO-INJECTOR) ---
+    function initFirebase() {
+        window.GameAnalytics = {
+            log: (eventName, params) => { console.log('⚠️ Analytics Offline:', eventName, params); }
+        };
+
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.textContent = `
+            import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+            import { getAnalytics, logEvent } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyDY259wW8A8qAv3yHXYjXdsXQ6hh1t54iA",
+                authDomain: "bloxplode.firebaseapp.com",
+                projectId: "bloxplode",
+                storageBucket: "bloxplode.firebasestorage.app",
+                messagingSenderId: "346109165031",
+                appId: "1:346109165031:web:28a5563cb6c987eb4f1142",
+                measurementId: "G-VC2LN6TDJF"
+            };
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                const analytics = getAnalytics(app);
+                
+                window.GameAnalytics = {
+                    log: (eventName, params) => {
+                        console.log('📊 Firebase Sent:', eventName, params);
+                        logEvent(analytics, eventName, params);
+                    }
+                };
+                console.log("🔥 Firebase Connected Successfully");
+            } catch (e) {
+                console.error("Firebase Init Failed:", e);
+            }
+        `;
+        document.head.appendChild(script);
+    }
+    
+    initFirebase();
+
     // --- 1. CONFIGURATION ---
     const STORAGE = {
         SFX: 'blox_sfx_enabled',
@@ -23,16 +60,15 @@
         haptic: localStorage.getItem(STORAGE.HAPTIC) !== 'false'
     };
 
-    // --- HELPER: DELAYED NAVIGATION (Prevents Sound Cut-off) ---
+    // --- HELPER: DELAYED NAVIGATION ---
     function navigateWithSound(url) {
         UI_CLICK_SOUND.play();
-        // Wait 250ms for sound to finish, then go
         setTimeout(() => {
             window.location.href = url;
         }, 250);
     }
 
-    // --- HELPER: CLONE & REPLACE (Fixes Level Buttons) ---
+    // --- HELPER: CLONE & REPLACE ---
     function replaceButtonWithSound(originalBtn, clickAction) {
         if (!originalBtn) return;
         const newBtn = originalBtn.cloneNode(true);
@@ -85,134 +121,104 @@
         `;
         document.body.appendChild(modal);
 
-        // Events
         gearBtn.addEventListener('click', () => modal.classList.add('active'));
         modal.querySelector('.us-close-btn').addEventListener('click', () => modal.classList.remove('active'));
         
-        // --- SOUND TOGGLE ---
         document.getElementById('us-toggle-sfx').addEventListener('change', (e) => {
             state.sfx = e.target.checked;
             localStorage.setItem(STORAGE.SFX, state.sfx);
             UI_CLICK_SOUND.play(true); 
+            if(window.GameAnalytics) window.GameAnalytics.log('settings_change', { type: 'sfx', value: state.sfx });
         });
 
         document.getElementById('us-toggle-bgm').addEventListener('change', (e) => {
             state.bgm = e.target.checked;
             localStorage.setItem(STORAGE.BGM, state.bgm);
-            applyMusicState(); 
+            applyMusicState();
+            if(window.GameAnalytics) window.GameAnalytics.log('settings_change', { type: 'bgm', value: state.bgm });
         });
+        
         document.getElementById('us-toggle-haptic').addEventListener('change', (e) => {
             state.haptic = e.target.checked;
             localStorage.setItem(STORAGE.HAPTIC, state.haptic);
         });
         
-        // RESTART with Delay
         document.getElementById('us-btn-restart').addEventListener('click', () => {
              UI_CLICK_SOUND.play();
+             if(window.GameAnalytics) window.GameAnalytics.log('restart_click', { source: 'settings_menu' });
              setTimeout(() => window.location.reload(), 250);
         });
         
-        // SETTINGS HOME BUTTON
         document.getElementById('us-btn-home').addEventListener('click', () => {
             const isSubfolder = window.location.pathname.includes('level') || window.location.pathname.includes('classic');
             const targetURL = isSubfolder ? '../index.html' : 'index.html';
+            if(window.GameAnalytics) window.GameAnalytics.log('home_click', { source: 'settings_menu' });
             navigateWithSound(targetURL); 
         });
     }
 
-    // --- 3. SYSTEM HOOKS & FIXES ---
+    // --- 3. SYSTEM HOOKS ---
     function hookSoundSystem() {
         if (!window.SoundSystem) { setTimeout(hookSoundSystem, 100); return; }
-
         const originalPlay = window.SoundSystem.play;
         window.SoundSystem.play = function(name, pitch, volume) {
             if (state.sfx) originalPlay.call(window.SoundSystem, name, pitch, volume);
         };
-
         const originalPlayMusic = window.SoundSystem.playMusic;
         window.SoundSystem.playMusic = function(name) {
             originalPlayMusic.call(window.SoundSystem, name);
             applyMusicState();
-            
-            const savedTime = parseFloat(sessionStorage.getItem(STORAGE.BGM_TIME));
-            if (savedTime && window.SoundSystem.bgmSource && window.SoundSystem.ctx) {
-                 // Future Sync Logic
-            }
         };
-
         const unlockAudio = () => {
             if (window.SoundSystem.ctx && window.SoundSystem.ctx.state === 'suspended') {
-                window.SoundSystem.ctx.resume().then(() => {
-                    console.log("Audio Context Resumed/Unlocked");
-                    applyMusicState();
-                });
+                window.SoundSystem.ctx.resume().then(() => { applyMusicState(); });
             }
         };
         window.addEventListener('touchstart', unlockAudio, { passive: true });
         window.addEventListener('click', unlockAudio, { passive: true });
-        
         applyMusicState();
     }
 
-    // --- 4. VISIBILITY API (FIXED FOR HEARTBEAT SLEEP) ---
+    // --- 4. VISIBILITY ---
     function initVisibilityHandler() {
         document.addEventListener('visibilitychange', () => {
             if (!window.SoundSystem || !window.SoundSystem.ctx) return;
-
             if (document.hidden) {
-                // 1. Suspend Audio Context (Stops BGM)
                 window.SoundSystem.ctx.suspend(); 
-                
-                // 2. FORCE STOP HEARTBEAT (Stops Breathing Sound immediately)
-                if (window.SoundSystem.stopHeartbeat) {
-                    window.SoundSystem.stopHeartbeat();
-                }
+                if (window.SoundSystem.stopHeartbeat) window.SoundSystem.stopHeartbeat();
             } else {
-                // 3. Resume Audio
                 window.SoundSystem.ctx.resume().then(() => {
                     applyMusicState(); 
-                    
-                    // 4. CHECK IF WE NEED TO RESTART HEARTBEAT
-                    // Only restart if the 'combo-active' state is still on the body
                     if (document.body.classList.contains('combo-active')) {
-                        if (window.SoundSystem.startHeartbeat) {
-                            window.SoundSystem.startHeartbeat();
-                        }
+                        if (window.SoundSystem.startHeartbeat) window.SoundSystem.startHeartbeat();
                     }
                 });
             }
         });
     }
 
-    // --- 5. PAGE EXIT ---
-    function initSeamlessHandoff() {
-        window.addEventListener('beforeunload', () => {
-            if (window.SoundSystem && window.SoundSystem.ctx) {
-                // Placeholder
-            }
-        });
-    }
-
     function applyMusicState() {
         if (!window.SoundSystem || !window.SoundSystem.bgmGain) return;
-        
         if (state.bgm) {
             const now = window.SoundSystem.ctx.currentTime;
             window.SoundSystem.bgmGain.gain.cancelScheduledValues(now);
             window.SoundSystem.bgmGain.gain.setValueAtTime(window.SoundSystem.bgmGain.gain.value, now);
             window.SoundSystem.bgmGain.gain.linearRampToValueAtTime(0.18, now + 0.5); 
-            
             if (window.SoundSystem.ctx.state === 'suspended') window.SoundSystem.ctx.resume();
         } else {
             window.SoundSystem.bgmGain.gain.value = 0;
         }
     }
 
-    // --- 6. NAVIGATION FIX 2: LEVEL BUTTONS (CLONE STRATEGY) ---
+    // --- 5. PAGE EXIT ---
+    function initSeamlessHandoff() {
+        window.addEventListener('beforeunload', () => {});
+    }
+
+    // --- 6. NAVIGATION BUTTONS ---
     function hookLevelButtons() {
         const adventureMapURL = '../index.html?returnTo=adventure';
         
-        // A. Home Buttons
         const levelHomeButtons = document.querySelectorAll('#btn-home, #vic-btn-home');
         levelHomeButtons.forEach(btn => {
             replaceButtonWithSound(btn, () => {
@@ -220,16 +226,15 @@
             });
         });
 
-        // B. Retry Buttons
         const retries = document.querySelectorAll('#btn-retry, #vic-btn-retry');
         retries.forEach(btn => {
             replaceButtonWithSound(btn, () => {
                 UI_CLICK_SOUND.play();
+                if(window.GameAnalytics) window.GameAnalytics.log('retry_click', { level: document.title });
                 setTimeout(() => window.location.reload(), 250);
             });
         });
 
-        // C. Next Level
         const nextBtn = document.getElementById('vic-btn-next');
         if (nextBtn) {
             replaceButtonWithSound(nextBtn, () => {
@@ -241,33 +246,123 @@
                     const currentNum = parseInt(match[1] || match[2]);
                     const nextNum = currentNum + 1;
                     target = `../bloxplode adventure level ${nextNum}/index.html`;
+                    if(window.GameAnalytics) window.GameAnalytics.log('level_next_click', { from_level: currentNum });
                 }
                 navigateWithSound(target);
             });
         }
     }
 
-    const originalVibrate = window.navigator.vibrate;
-    if (originalVibrate) {
-        window.navigator.vibrate = function(pattern) {
-            if (state.haptic) return originalVibrate.call(window.navigator, pattern);
-            return false;
-        };
+    // --- 7. AUTO ANALYTICS (WATCHER) ---
+    function initAutoTracking() {
+        // Prevent duplicate logs if animation replays
+        let hasLoggedWin = false;
+        let hasLoggedLoss = false;
+
+        function getLevelNumber() {
+            const title = document.title;
+            // 1. Try to find "Level X"
+            const levelMatch = title.match(/Level (\d+)/i);
+            if (levelMatch) return parseInt(levelMatch[1]);
+            // 2. Try to detect "Classic"
+            if (title.toLowerCase().includes('classic')) return 'Classic';
+            // 3. Fallback
+            return 'Unknown';
+        }
+
+        function getScore() {
+            const el = document.getElementById('score-val');
+            return el ? parseInt(el.innerText) : 0;
+        }
+
+        // WATCH FOR VICTORY
+        const victoryScreen = document.getElementById('victory-ui-layer');
+        if (victoryScreen) {
+            const observer = new MutationObserver((mutations) => {
+                if (!victoryScreen.classList.contains('hidden') && !hasLoggedWin) {
+                    hasLoggedWin = true;
+                    if(window.GameAnalytics) {
+                        window.GameAnalytics.log('level_complete', { 
+                            level_number: getLevelNumber(),
+                            final_score: getScore()
+                        });
+                    }
+                }
+            });
+            observer.observe(victoryScreen, { attributes: true, attributeFilter: ['class'] });
+        }
+
+        // WATCH FOR GAME OVER
+        const failScreen = document.getElementById('game-over-overlay');
+        if (failScreen) {
+            const observer = new MutationObserver((mutations) => {
+                const isActive = !failScreen.classList.contains('hidden') || failScreen.classList.contains('overlay-active');
+                
+                if (isActive && !hasLoggedLoss) {
+                    hasLoggedLoss = true;
+                    if(window.GameAnalytics) {
+                        window.GameAnalytics.log('level_fail', { 
+                            level_number: getLevelNumber(),
+                            final_score: getScore()
+                        });
+                    }
+                }
+            });
+            observer.observe(failScreen, { attributes: true, attributeFilter: ['class'] });
+        }
     }
 
-    // ============================================
-    // ROBUST UI CLICK SOUND + HAPTICS
-    // ============================================
-    const UI_CLICK_SOUND = {
-        ctx: null,
-        buffer: null,
+    // --- 8. SMART SCALING (FIT-TO-WINDOW) ---
+    function initSmartScaling() {
+        function applySmartScale() {
+            const gameCol = document.querySelector('.game-column');
+            if (!gameCol) return;
+
+            const availW = window.innerWidth;
+            const availH = window.innerHeight;
+
+            const IDEAL_WIDTH = 404; 
+            // AGGRESSIVE PC SCALING: Reduced from 800 to 700 to force larger zoom
+            const IDEAL_HEIGHT = 700; 
+
+            const scaleW = availW / IDEAL_WIDTH;
+            const scaleH = availH / IDEAL_HEIGHT;
+
+            let finalScale;
+            
+            if (scaleW < scaleH) {
+                // PORTRAIT (Mobile): Use 100% of Width (TRUE Edge-to-Edge)
+                finalScale = scaleW * 1.0; 
+            } else {
+                // LANDSCAPE (PC): Use 90% of Height (SAFE ZONE - Prevents tray cut-off)
+                finalScale = scaleH * 0.90;
+            }
+
+            gameCol.style.transform = `scale(${finalScale})`;
+            
+            // Critical: Update global scale for drag logic
+            window.gameScale = finalScale;
+        }
+
+        applySmartScale();
         
+        window.addEventListener('resize', () => {
+            applySmartScale();
+            setTimeout(applySmartScale, 10);
+        });
+
+        setTimeout(applySmartScale, 50);
+        setTimeout(applySmartScale, 100);
+    }
+
+    // --- CLICK SOUNDS ---
+    const UI_CLICK_SOUND = {
+        ctx: null, buffer: null,
         init: function() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 this.ctx = new AudioContext();
                 const pathsToTry = ['sounds/button_click.wav', '../sounds/button_click.wav'];
-                
                 const tryFetch = (index) => {
                     if (index >= pathsToTry.length) return;
                     fetch(pathsToTry[index])
@@ -279,19 +374,11 @@
                 tryFetch(0);
             } catch(e) {}
         },
-
         play: function(forceSound) {
-            // 1. HAPTIC FEEDBACK (25ms)
-            if (state.haptic && navigator.vibrate) {
-                navigator.vibrate(25);
-            }
-
-            // 2. SOUND EFFECT
+            if (state.haptic && navigator.vibrate) navigator.vibrate(25);
             if (!forceSound && localStorage.getItem('blox_sfx_enabled') === 'false') return;
-
             if (!this.ctx || !this.buffer) return;
             if (this.ctx.state === 'suspended') this.ctx.resume();
-
             const s = this.ctx.createBufferSource();
             s.buffer = this.buffer;
             const g = this.ctx.createGain();
@@ -304,15 +391,10 @@
 
     function attachGlobalClickSound() {
         UI_CLICK_SOUND.init();
-        
         document.addEventListener('click', (e) => {
             const target = e.target;
-
-            // 1. CHECK IF CLICK IS ON THE SOUND TOGGLE
             const switchEl = target.closest('.us-switch');
             const isSoundToggle = switchEl && switchEl.querySelector('#us-toggle-sfx');
-
-            // 2. MENU LINKS (Pills, Play Button, Level Blocks)
             const isMenuLink = target.closest('.pill-btn, .big-play-btn, .struct-block:not(.locked)');
             
             if (isMenuLink && isMenuLink.tagName === 'A') {
@@ -323,13 +405,7 @@
                     return;
                 }
             }
-
-            // 3. GENERIC SOUND TARGETS
-            const soundTargets = [
-                '#universal-gear-btn', '.us-close-btn', '.us-btn', '.us-switch',
-                '.nav-tab', '.pill-btn' 
-            ];
-            
+            const soundTargets = ['#universal-gear-btn', '.us-close-btn', '.us-btn', '.us-switch', '.nav-tab', '.pill-btn'];
             if (target.closest(soundTargets.join(','))) {
                 UI_CLICK_SOUND.play(!!isSoundToggle); 
             }
@@ -347,5 +423,7 @@
         initSeamlessHandoff();   
         hookLevelButtons(); 
         attachGlobalClickSound();
+        initAutoTracking(); 
+        initSmartScaling(); 
     }
 })();
