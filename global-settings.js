@@ -1,9 +1,41 @@
 /* =========================================================
-   UNIVERSAL SETTINGS MODULE - AUDIO CORE V2 + ANALYTICS (AUTO-TRACK)
+   UNIVERSAL SETTINGS MODULE - AUDIO CORE V2 + ANALYTICS + JANITOR
    ========================================================= */
 
 (function() {
-    // --- 0. FIREBASE ANALYTICS (AUTO-INJECTOR) ---
+
+    // --- 0. JANITOR: AUTO-RENAME PAGES (FIX MESSY TITLES) ---
+    function sanitizePageTitle() {
+        const path = window.location.pathname.toLowerCase();
+        const urlParams = new URLSearchParams(window.location.search);
+
+        // 1. Adventure Levels (Finds "level 5" in folder name)
+        // Matches: /level 5/, /level%205/, /bloxplode adventure level 5/
+        const levelMatch = path.match(/level[\s%20_-]*(\d+)/);
+        if (levelMatch) {
+            document.title = `Level ${levelMatch[1]}`;
+            return;
+        }
+
+        // 2. Classic Mode
+        if (path.includes('classic')) {
+            document.title = "Classic Mode";
+            return;
+        }
+
+        // 3. Main Menu (Root)
+        // If we are at index.html but NOT in a level/classic folder
+        if (!path.includes('level') && !path.includes('classic')) {
+            document.title = "Main Menu";
+            return;
+        }
+    }
+
+    // Run Janitor IMMEDIATELY before Analytics loads
+    sanitizePageTitle();
+
+
+    // --- 1. FIREBASE ANALYTICS (AUTO-INJECTOR) ---
     function initFirebase() {
         window.GameAnalytics = {
             log: (eventName, params) => { console.log('⚠️ Analytics Offline:', eventName, params); }
@@ -45,7 +77,7 @@
     
     initFirebase();
 
-    // --- 1. CONFIGURATION ---
+    // --- 2. CONFIGURATION ---
     const STORAGE = {
         SFX: 'blox_sfx_enabled',
         BGM: 'blox_bgm_enabled',
@@ -79,7 +111,7 @@
         };
     }
 
-    // --- 2. INJECT HTML (UI) ---
+    // --- 3. INJECT HTML (UI) ---
     function injectSettingsUI() {
         const gearBtn = document.createElement('div');
         gearBtn.id = 'universal-gear-btn';
@@ -157,7 +189,7 @@
         });
     }
 
-    // --- 3. SYSTEM HOOKS ---
+    // --- 4. SYSTEM HOOKS ---
     function hookSoundSystem() {
         if (!window.SoundSystem) { setTimeout(hookSoundSystem, 100); return; }
         const originalPlay = window.SoundSystem.play;
@@ -179,7 +211,7 @@
         applyMusicState();
     }
 
-    // --- 4. VISIBILITY ---
+    // --- 5. VISIBILITY ---
     function initVisibilityHandler() {
         document.addEventListener('visibilitychange', () => {
             if (!window.SoundSystem || !window.SoundSystem.ctx) return;
@@ -210,12 +242,12 @@
         }
     }
 
-    // --- 5. PAGE EXIT ---
+    // --- 6. PAGE EXIT ---
     function initSeamlessHandoff() {
         window.addEventListener('beforeunload', () => {});
     }
 
-    // --- 6. NAVIGATION BUTTONS ---
+    // --- 7. NAVIGATION BUTTONS ---
     function hookLevelButtons() {
         const adventureMapURL = '../index.html?returnTo=adventure';
         
@@ -253,15 +285,18 @@
         }
     }
 
-    // --- 7. AUTO ANALYTICS (WATCHER) ---
+    // --- 8. AUTO ANALYTICS (WATCHER + TIME TRACKER) ---
     function initAutoTracking() {
+        // [NEW] TIME TRACKER START
+        const levelStartTime = Date.now(); 
+
         // Prevent duplicate logs if animation replays
         let hasLoggedWin = false;
         let hasLoggedLoss = false;
 
         function getLevelNumber() {
             const title = document.title;
-            // 1. Try to find "Level X"
+            // 1. Janitor has already standardized title to "Level X"
             const levelMatch = title.match(/Level (\d+)/i);
             if (levelMatch) return parseInt(levelMatch[1]);
             // 2. Try to detect "Classic"
@@ -275,6 +310,11 @@
             return el ? parseInt(el.innerText) : 0;
         }
 
+        // [NEW] Helper to Calculate Duration
+        function getTimeSpent() {
+            return Math.round((Date.now() - levelStartTime) / 1000); // Seconds
+        }
+
         // WATCH FOR VICTORY
         const victoryScreen = document.getElementById('victory-ui-layer');
         if (victoryScreen) {
@@ -284,7 +324,8 @@
                     if(window.GameAnalytics) {
                         window.GameAnalytics.log('level_complete', { 
                             level_number: getLevelNumber(),
-                            final_score: getScore()
+                            final_score: getScore(),
+                            duration_seconds: getTimeSpent()
                         });
                     }
                 }
@@ -303,7 +344,8 @@
                     if(window.GameAnalytics) {
                         window.GameAnalytics.log('level_fail', { 
                             level_number: getLevelNumber(),
-                            final_score: getScore()
+                            final_score: getScore(),
+                            duration_seconds: getTimeSpent()
                         });
                     }
                 }
@@ -312,7 +354,7 @@
         }
     }
 
-    // --- 8. SMART SCALING (FIT-TO-WINDOW) ---
+    // --- 9. SMART SCALING (FIT-TO-WINDOW) ---
     function initSmartScaling() {
         function applySmartScale() {
             const gameCol = document.querySelector('.game-column');
@@ -322,7 +364,6 @@
             const availH = window.innerHeight;
 
             const IDEAL_WIDTH = 404; 
-            // AGGRESSIVE PC SCALING: Reduced from 800 to 700 to force larger zoom
             const IDEAL_HEIGHT = 700; 
 
             const scaleW = availW / IDEAL_WIDTH;
