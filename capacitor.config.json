@@ -1,0 +1,6 @@
+{
+  "appId": "com.stratos.bloxplode",
+  "appName": "Bloxplode",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

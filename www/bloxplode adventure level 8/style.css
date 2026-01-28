@@ -1,0 +1,1201 @@
+@import url('https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,900;1,900&family=Rubik+Mono+One&display=swap');
+
+* { box-sizing: border-box; touch-action: none; user-select: none; -webkit-user-select: none; }
+
+/* 1) GLOBAL BACKGROUND */
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    touch-action: none; 
+    overscroll-behavior: none;
+    margin: 0;
+    /* BACKGROUND REMAINS BLUE FOR CONTRAST */
+    background: linear-gradient(180deg, #566CD5 0%, #3E50A4 100%);
+}
+
+:root {
+    --rad-block: 6px; 
+    --rad-grid: 12px; 
+}
+
+body { 
+    color: #e8eaed; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    text-align: center; 
+    display: flex; 
+    justify-content: center; 
+    padding-top: 130px; 
+}
+
+/* --- ADVENTURE MODE: GOAL BAR --- */
+#goal-bar {
+    position: absolute;
+    top: 20px; 
+    display: flex;
+    gap: 30px; /* Reduced gap slightly to fit 3 items */
+    z-index: 20;
+    background: transparent;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+}
+
+.goal-item {
+    display: flex;
+    flex-direction: column; 
+    align-items: center;
+    gap: 2px; 
+    line-height: 2.0; 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 28px; 
+    color: white;
+    font-weight: 700;
+    font-style: normal;
+    text-shadow: 0 3px 0 rgba(0,0,0,0.3);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative; 
+}
+
+.goal-item.pulse {
+    animation: goal-bounce 0.3s ease-out;
+}
+
+@keyframes goal-bounce {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); filter: brightness(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* --- SCOREBOARD GEM ICONS --- */
+.gem-icon {
+    width: 44px;
+    height: 44px;
+    position: relative; 
+    background-color: transparent; 
+    border: none;
+    margin: 0;
+    margin-bottom: -2px;
+}
+
+/* --- GAME COLUMN --- */
+.game-column { 
+    width: 404px; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center;
+    transform-origin: top center;
+    transition: transform 0.1s linear; 
+    touch-action: none;
+}
+.hidden { display: none !important; }
+
+/* --- GRID --- */
+#grid-wrapper { 
+    background: radial-gradient(circle at center, #1A1D24 0%, #111318 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5); 
+    width: 404px; 
+    height: 404px; 
+    padding: 12px; 
+    margin-top: 0; 
+    position: relative; 
+    overflow: hidden; 
+    z-index: 5;
+    touch-action: none;
+}
+
+#grid { 
+    display: grid; 
+    grid-template-columns: repeat(8, 44px); 
+    gap: 4px; 
+}
+
+.cell { 
+    width: 44px; 
+    height: 44px; 
+    background: #262A35; 
+    border-radius: 4px; 
+    position: relative; 
+    transition: background 0.1s;
+}
+
+/* --- BLOCK STYLES (General) --- */
+.cell.occupied, .block {
+    background-color: var(--block-color);
+    border-radius: 6px; 
+    box-shadow: 
+        inset 3px 3px 0px rgba(255, 255, 255, 0.4),
+        inset -3px -3px 0px rgba(0, 0, 0, 0.2);
+    border: none;
+    opacity: 1;
+}
+
+/* =========================================================
+   UNIFIED GEM VISUALS (GRID + UI + FLIGHT)
+   ========================================================= */
+
+/* 1. Base Block Container - UPDATED TO ORANGE TINT (255, 159, 67) */
+.block.gem-gold, .cell.embedded-gold,
+.block.gem-purple, .cell.embedded-purple {
+    background-color: rgba(255, 159, 67, 0.25) !important; 
+    border: 1px solid rgba(255, 159, 67, 0.5);
+    box-shadow: inset 0 0 10px rgba(255, 159, 67, 0.2) !important;
+    border-radius: 6px;
+}
+
+/* 2. SHARED: The Socket */
+.block.gem-gold::before, .cell.embedded-gold::before,
+.block.gem-purple::before, .cell.embedded-purple::before,
+.block.gem-red::before, .cell.embedded-red::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 85%; 
+    height: 85%;
+    background: radial-gradient(circle, #000000 30%, #2a1d2e 100%);
+    border-radius: 50%;
+    z-index: 1;
+    box-shadow: inset 2px 2px 6px rgba(0,0,0,0.8), 0 0 2px rgba(255,255,255,0.1);
+}
+
+/* 3. SHARED: The Gold Gem */
+.block.gem-gold::after, .cell.embedded-gold::after,
+.gem-icon.gem-gold::after,
+.flying-gem.gem-gold::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 68%; 
+    height: 68%; 
+    z-index: 2;
+    border-radius: 4px; 
+    
+    background: 
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8) 0%, transparent 20%), 
+        conic-gradient(
+            from 45deg at 50% 50%,
+            #FFB300 0deg 90deg,   
+            #E65100 90deg 180deg, 
+            #F57F17 180deg 270deg,
+            #FFD54F 270deg 360deg 
+        );
+        
+    box-shadow: 
+        inset 1px 1px 0px rgba(255,255,255,0.6), 
+        inset -1px -1px 0px rgba(0,0,0,0.2),     
+        0 4px 5px rgba(0,0,0,0.5);               
+}
+
+/* 4. SHARED: The Purple Gem */
+.block.gem-purple::after, .cell.embedded-purple::after,
+.gem-icon.gem-purple::after,
+.flying-gem.gem-purple::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 72%; 
+    height: 72%; 
+    z-index: 2;
+    
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    
+    background: 
+        radial-gradient(circle at 50% 40%, rgba(255,255,255,0.4) 0%, transparent 50%), 
+        conic-gradient(
+            from 0deg at 50% 55%, 
+            #D500F9 0deg 72deg,    
+            #AA00FF 72deg 144deg,  
+            #7200CA 144deg 216deg, 
+            #AA00FF 216deg 288deg, 
+            #EA80FC 288deg 360deg  
+        );
+
+    filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.6));
+}
+
+/* =========================================================
+   NEW RED GEM (THE RUBY DIAMOND)
+   ========================================================= */
+
+/* 1. Base Container (Tinted Red) */
+.block.gem-red, .cell.embedded-red {
+    background-color: rgba(255, 23, 68, 0.25) !important; 
+    border: 1px solid rgba(255, 23, 68, 0.5);
+    box-shadow: inset 0 0 10px rgba(255, 23, 68, 0.2) !important;
+    border-radius: 6px;
+}
+
+/* 2. The Red Gem (Diamond Shape) */
+.block.gem-red::after, .cell.embedded-red::after,
+.gem-icon.gem-red::after,
+.flying-gem.gem-red::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 72%; height: 72%; 
+    z-index: 2;
+    
+    /* DIAMOND SHAPE */
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    
+    background: 
+        radial-gradient(circle at 35% 35%, rgba(255,255,255,0.8) 0%, transparent 25%), 
+        conic-gradient(
+            from 0deg at 50% 50%, 
+            #FF1744 0deg 90deg,    
+            #D50000 90deg 180deg,  
+            #FF5252 180deg 270deg, 
+            #B71C1C 270deg 360deg  
+        );
+
+    box-shadow: inset 1px 1px 0px rgba(255,255,255,0.4);
+    filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.6));
+}
+
+/* 5. UI ICON SPECIFIC OVERRIDES */
+.gem-icon.gem-gold::after,
+.gem-icon.gem-purple::after,
+.gem-icon.gem-red::after {
+    width: 100%; height: 100%; 
+    filter: drop-shadow(0 4px 5px rgba(0,0,0,0.4));
+}
+
+/* 6. TRAY SPECIFIC OVERRIDES */
+#tray .block.gem-gold::before, 
+#tray .block.gem-purple::before,
+#tray .block.gem-red::before {
+    width: 80%; height: 80%;
+}
+#tray .block.gem-gold::after { width: 65%; height: 65%; }
+#tray .block.gem-purple::after { width: 68%; height: 68%; }
+#tray .block.gem-red::after { width: 68%; height: 68%; }
+
+/* =========================================================
+   UPDATED: FLYING GEM & SPARKLE PARTICLES
+   ========================================================= */
+
+.flying-gem {
+    position: fixed;
+    z-index: 10000;
+    pointer-events: none;
+    will-change: transform, top, left;
+    background: transparent !important; 
+    box-shadow: none !important;
+    border: none !important;
+    animation: gem-pop-hover 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes gem-pop-hover {
+    0% { transform: scale(1); filter: brightness(1); }
+    100% { transform: scale(1.5); filter: brightness(1.2); } 
+}
+
+.flying-gem.in-flight {
+    animation: none; 
+    transition: 
+        left 0.4s cubic-bezier(0.55, 0.055, 0.675, 0.19), 
+        top 0.4s cubic-bezier(0.55, 0.055, 0.675, 0.19),
+        transform 0.2s linear 0.2s, 
+        opacity 0.4s linear;
+}
+
+.flying-gem.gem-gold::after, 
+.flying-gem.gem-purple::after,
+.flying-gem.gem-red::after {
+    width: 100%; height: 100%; 
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
+}
+.flying-gem::before { display: none; }
+
+/* --- SPARKLE DUST --- */
+.flight-particle {
+    position: fixed;
+    background-color: #FFFFFF; 
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10001; 
+    will-change: transform, opacity;
+    animation: sparkle-fizzle 0.5s linear forwards; 
+}
+
+.flight-particle.p-gold { 
+    box-shadow: 0 0 4px 1px rgba(255, 215, 0, 0.6); 
+}
+.flight-particle.p-purple { 
+    box-shadow: 0 0 4px 1px rgba(234, 128, 252, 0.6); 
+}
+.flight-particle.p-red { 
+    box-shadow: 0 0 4px 1px rgba(255, 23, 68, 0.6); 
+}
+
+@keyframes sparkle-fizzle {
+    0% { transform: scale(1); opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { transform: scale(0); opacity: 0; }
+}
+
+/* --- EMBEDDED WALL (UPDATED TO ORANGE) --- */
+.cell.embedded-wall {
+    background-color: #FF9F43; /* UPDATED COLOR */
+    box-shadow: inset 3px 3px 0px rgba(255, 255, 255, 0.4), inset -3px -3px 0px rgba(0, 0, 0, 0.2);
+}
+
+/* --- VISUAL FX --- */
+.placed-impact { animation: place-flash 0.4s ease-out forwards; z-index: 15; }
+@keyframes place-flash {
+    0% { filter: brightness(1.4); transform: scale(1.05); }
+    100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* =====================================================
+   GHOST PREVIEWS
+   ==================================================== */
+@keyframes preview-pulse {
+    0% { opacity: 0.5; transform: scale(0.95); filter: brightness(1); }
+    100% { opacity: 0.8; transform: scale(1); filter: brightness(1.3); }
+}
+
+.cell.ghost { 
+    background: var(--block-color); 
+    border-radius: var(--rad-block);
+    z-index: 100;
+    opacity: 0.5 !important; 
+    border: 1px solid rgba(255,255,255,0.3); 
+    animation: preview-pulse 1.2s ease-in-out alternate infinite;
+    box-shadow: none; 
+}
+
+.cell.ghost-clear {
+    background: var(--preview-color) !important;
+    border-radius: var(--rad-block);
+    z-index: 100;
+    border: 1px solid rgba(255,255,255,0.6); 
+    animation: clear-pulse 0.6s ease-in-out alternate infinite;
+}
+
+@keyframes clear-pulse {
+    0% { opacity: 0.6; filter: brightness(1.3); transform: scale(0.96); }
+    100% { opacity: 1.0; filter: brightness(1.6); transform: scale(1); }
+}
+
+/* =====================================================
+   COMBO & REINFORCEMENT SYSTEM
+   ===================================================== */
+@keyframes shake-1 { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-2px, 2px); } 75% { transform: translate(2px, -2px); } }
+@keyframes shake-2 { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-4px, 0); } 40% { transform: translate(4px, 0); } 60% { transform: translate(-4px, 0); } 80% { transform: translate(4px, 0); } }
+@keyframes shake-3 { 0%, 100% { transform: translate(0, 0); } 10%, 90% { transform: translate(-5px, -2px); } 30%, 70% { transform: translate(5px, 3px); } 50% { transform: translate(-5px, 5px); } }
+
+.shake-1 { animation: shake-1 0.1s linear; }
+.shake-2 { animation: shake-2 0.12s linear; }
+.shake-3 { animation: shake-3 0.15s linear; }
+
+.combo-popup {
+    position: absolute;
+    top: 52%; 
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 20010;
+    pointer-events: none;
+    animation: combo-pop 0.98s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    will-change: transform;
+}
+
+.combo-label {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 55px;
+    color: #fff;
+    -webkit-text-stroke: 2px #fff;
+    text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    line-height: 1;
+}
+
+.combo-value {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 88px;
+    line-height: 1;
+    margin-top: 8px;
+    background: -webkit-linear-gradient(#fff, var(--combo-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    -webkit-text-stroke: 3px #fff;
+    filter: drop-shadow(0 6px 0 var(--combo-color));
+}
+
+@keyframes combo-pop {
+    0% { transform: translate(-50%, -20%) scale(0.5); opacity: 0; }
+    40% { transform: translate(-50%, -60%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -80%) scale(1); opacity: 0; }
+}
+
+.reinforcement-banner {
+    position: absolute;
+    top: 38%;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20020;
+    pointer-events: none;
+    
+    background: linear-gradient(90deg, transparent, var(--combo-color), transparent);
+    border-top: 2px solid var(--combo-color);
+    border-bottom: 2px solid var(--combo-color);
+    
+    animation: banner-wipe 0.85s ease-out forwards;
+    transform-origin: center;
+    will-change: transform;
+}
+
+.banner-text {
+    font-family: 'Rubik Mono One', sans-serif;
+    font-size: 26px;
+    color: #fff;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    white-space: nowrap;
+}
+
+@keyframes banner-wipe {
+    0% { transform: scaleX(0); opacity: 0; }
+    20% { transform: scaleX(1); opacity: 1; }
+    80% { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(1.2); opacity: 0; }
+}
+
+/* --- TRAY --- */
+#tray { 
+    width: 100%; 
+    margin-top: 30px; 
+    display: flex; 
+    justify-content: space-between; 
+    height: 120px;
+    position: relative;
+    z-index: 10;
+    touch-action: none; 
+    transition: opacity 0.3s;
+}
+.tray-slot { 
+    width: 128px; 
+    height: 120px; 
+    background: transparent; 
+    border-radius: 8px; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    touch-action: none; 
+}
+.piece { position: relative; pointer-events: none; }
+.block { position: absolute; width: 26px; height: 26px; }
+
+/* Dragging */
+.piece.dragging { position: fixed; z-index: 1000; pointer-events: none; }
+.piece.dragging .block {
+    width: 44px; height: 44px; border-radius: 6px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3), inset 3px 3px 0px rgba(255, 255, 255, 0.4), inset -3px -3px 0px rgba(0, 0, 0, 0.2);      
+}
+
+.piece.dragging .block.gem-gold,
+.piece.dragging .block.gem-purple,
+.piece.dragging .block.gem-red {
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3), inset 3px 3px 0px rgba(255, 255, 255, 0.4), inset -3px -3px 0px rgba(0, 0, 0, 0.2) !important;
+}
+
+@media (pointer: coarse) {
+    .piece.dragging .block {
+        box-shadow: 0 25px 30px rgba(0,0,0,0.4), inset 3px 3px 0px rgba(255, 255, 255, 0.4), inset -3px -3px 0px rgba(0, 0, 0, 0.2);      
+        transform: scale(1.08);
+    }
+}
+
+/* ============================================
+   NEON SNAP VFX & LIGHTING
+   ============================================ */
+
+.fx-dying-block {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    background: var(--color);
+    border-radius: 6px;
+    z-index: 500;
+    pointer-events: none;
+    will-change: transform, opacity;
+}
+
+.anim-implode { animation: implode 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+@keyframes implode {
+    0% { transform: scale(1); filter: brightness(1); opacity: 1; }
+    40% { transform: scale(0.9); filter: brightness(2); opacity: 1; }
+    100% { transform: scale(0.2); filter: brightness(5); opacity: 0; }
+}
+
+.fx-core-flash {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    background: #FFFFFF;
+    box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    z-index: 600;
+    pointer-events: none;
+    animation: core-flash-pop 0.3s ease-out forwards;
+}
+
+@keyframes core-flash-pop {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+}
+
+.fx-laser-beam {
+    position: absolute;
+    background: #fff;
+    box-shadow: 0 0 15px var(--color); 
+    border-radius: 4px;
+    z-index: 400;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.laser-h { height: 2px; width: 0; animation: laser-wipe-h 0.3s ease-out forwards; }
+.laser-v { width: 2px; height: 0; animation: laser-wipe-v 0.3s ease-out forwards; }
+@keyframes laser-wipe-h { 0% { width: 0; opacity: 1; } 50% { width: 100%; opacity: 1; } 100% { width: 100%; opacity: 0; } }
+@keyframes laser-wipe-v { 0% { height: 0; opacity: 1; } 50% { height: 100%; opacity: 1; } 100% { height: 100%; opacity: 0; } }
+
+.fx-spark {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--color);
+    box-shadow: 0 0 4px var(--color);
+    border-radius: 1px;
+    z-index: 550;
+    pointer-events: none;
+    animation: spark-fly 0.5s ease-out forwards;
+}
+@keyframes spark-fly {
+    0% { transform: translate(0, 0) scale(1.5); opacity: 1; }
+    60% { opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+@keyframes flashbang-dim { 0% { background: rgba(255,255,255,0.2); } 100% { background: transparent; } }
+.flashbang-active { animation: flashbang-dim 0.15s linear; }
+
+#grid-wrapper::after, #grid-wrapper::before {
+    content: '';
+    position: absolute;
+    border-radius: var(--rad-grid);
+    pointer-events: none;
+    opacity: 0; 
+}
+
+#grid-wrapper::after {
+    inset: 0;
+    z-index: 5;
+    background: var(--flash-color, #fff);
+    mix-blend-mode: screen; 
+}
+
+#grid-wrapper::before {
+    inset: -4px; 
+    z-index: -1;
+    border: 3px solid var(--flash-color, transparent);
+    box-shadow: 0 0 20px var(--flash-color, transparent);
+}
+
+@keyframes gpu-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+/* TRIGGERS */
+#grid-wrapper:has(.combo-popup[style*="00d2d3"]) { --flash-color: #00d2d3; }
+#grid-wrapper:has(.combo-popup[style*="00d2d3"])::after, #grid-wrapper:has(.combo-popup[style*="00d2d3"])::before { animation: gpu-flash 0.5s ease-out forwards; }
+
+#grid-wrapper:has(.combo-popup[style*="ff9ff3"]) { --flash-color: #ff9ff3; }
+#grid-wrapper:has(.combo-popup[style*="ff9ff3"])::after, #grid-wrapper:has(.combo-popup[style*="ff9ff3"])::before { animation: gpu-flash 0.5s ease-out forwards; }
+
+#grid-wrapper:has(.combo-popup[style*="54a0ff"]) { --flash-color: #54a0ff; }
+#grid-wrapper:has(.combo-popup[style*="54a0ff"])::after, #grid-wrapper:has(.combo-popup[style*="54a0ff"])::before { animation: gpu-flash 0.5s ease-out forwards; }
+
+#grid-wrapper:has(.combo-popup[style*="feca57"]),
+#grid-wrapper:has(.combo-popup[style*="5f27cd"]),
+#grid-wrapper:has(.combo-popup[style*="ff6b6b"]),
+#grid-wrapper:has(.combo-popup[style*="f1c40f"]),
+#grid-wrapper:has(.combo-popup[style*="00ffcc"]) { --flash-color: #fff; }
+
+#grid-wrapper:has(.combo-popup[style*="feca57"]) { --flash-color: #feca57; }
+#grid-wrapper:has(.combo-popup[style*="5f27cd"]) { --flash-color: #5f27cd; }
+#grid-wrapper:has(.combo-popup[style*="ff6b6b"]) { --flash-color: #ff6b6b; }
+#grid-wrapper:has(.combo-popup[style*="f1c40f"]) { --flash-color: #f1c40f; }
+#grid-wrapper:has(.combo-popup[style*="00ffcc"]) { --flash-color: #00ffcc; }
+
+#grid-wrapper:has(.combo-popup[style*="feca57"])::after, #grid-wrapper:has(.combo-popup[style*="feca57"])::before,
+#grid-wrapper:has(.combo-popup[style*="5f27cd"])::after, #grid-wrapper:has(.combo-popup[style*="5f27cd"])::before,
+#grid-wrapper:has(.combo-popup[style*="ff6b6b"])::after, #grid-wrapper:has(.combo-popup[style*="ff6b6b"])::before,
+#grid-wrapper:has(.combo-popup[style*="f1c40f"])::after, #grid-wrapper:has(.combo-popup[style*="f1c40f"])::before,
+#grid-wrapper:has(.combo-popup[style*="00ffcc"])::after, #grid-wrapper:has(.combo-popup[style*="00ffcc"])::before {
+    animation: gpu-flash 0.5s ease-out forwards;
+}
+
+/* =========================================================
+   NEW UI / OVERLAYS & FIREWORKS
+   ========================================================= */
+
+/* GLASSMORPHISM OVERLAY */
+#game-over-overlay { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(5, 8, 12, 0.85); 
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none; 
+    transition: opacity 0.4s ease-out;
+}
+
+#game-over-overlay.overlay-active {
+    opacity: 1;
+    pointer-events: all; 
+}
+
+/* FAILURE MESSAGE */
+.failure-message {
+    position: absolute;
+    bottom: 55%; 
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center; 
+    gap: 15px; 
+    font-family: 'Rubik Mono One', sans-serif; 
+    font-weight: 400; 
+    font-style: normal;
+    text-transform: uppercase;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+
+.word-level { 
+    color: #FFFFFF; 
+    font-size: 30px; 
+    opacity: 0; 
+}
+
+.word-failed { 
+    color: #FF4444; 
+    font-size: 48px; 
+    opacity: 0; 
+}
+
+@keyframes stamp-slam {
+    0% { opacity: 0; transform: scale(4); filter: blur(4px); }
+    60% { opacity: 1; transform: scale(0.9); filter: blur(0px); } 
+    80% { transform: scale(1.05); } 
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.word-level.active {
+    animation: stamp-slam 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+.word-failed.active {
+    animation: stamp-slam 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; 
+    animation-delay: 0.25s; 
+}
+
+/* BUTTONS */
+.game-over-buttons {
+    position: absolute;
+    bottom: 35%; 
+    display: flex;
+    gap: 20px;
+    opacity: 0; 
+    transform: translateY(20px);
+    pointer-events: none; 
+}
+
+.game-over-buttons.active {
+    animation: buttons-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation-delay: 1.0s; 
+    pointer-events: auto;
+}
+
+@keyframes buttons-enter {
+    from { opacity: 0; transform: translateY(30px) scale(0.9); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.action-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 3px solid #FFF; 
+    background: linear-gradient(180deg, #FFD700 0%, #FFA500 100%); 
+    box-shadow: 0 6px 0 #D46A00, 0 10px 10px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.1s;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.action-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #D46A00, 0 4px 5px rgba(0,0,0,0.3);
+}
+
+.action-btn svg {
+    width: 36px;
+    height: 36px;
+    fill: #FFF;
+    filter: drop-shadow(0 2px 0 rgba(160, 80, 0, 0.5));
+}
+
+.action-btn.dormant {
+    filter: grayscale(0.4) opacity(0.8);
+    cursor: default;
+}
+.action-btn.dormant:active {
+    transform: none;
+    box-shadow: 0 6px 0 #D46A00, 0 10px 10px rgba(0,0,0,0.3);
+}
+
+/* VICTORY DIM & FIREWORKS */
+#victory-dim {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 15, 0.90); 
+    z-index: 8500; 
+    opacity: 0;
+    pointer-events: none; 
+    transition: opacity 0.1s; 
+}
+
+#victory-dim.active {
+    animation: victory-dim-in 400ms ease-out forwards;
+}
+
+@keyframes victory-dim-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#victory-fireworks {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9000;
+    overflow: hidden;
+}
+
+.firework-rocket {
+    position: absolute;
+    bottom: -50px; 
+    width: 4px;
+    height: 40px;
+    background: linear-gradient(to top, transparent, #fff);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    transform-origin: bottom center;
+    will-change: transform;
+    animation: rocket-flight 450ms ease-out forwards;
+}
+
+@keyframes rocket-flight {
+    0% { transform: translateY(0) scaleY(1); opacity: 1; }
+    70% { opacity: 1; }
+    100% { transform: translateY(var(--target-y)) scaleY(0.5); opacity: 0; }
+}
+
+.firework-particle {
+    position: absolute;
+    width: 4px;  
+    height: 4px; 
+    border-radius: 50%;
+    will-change: transform, opacity;
+    animation: particle-burst 1200ms cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+@keyframes particle-burst {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    15% { opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(0.5); opacity: 0; }
+}
+
+/* VICTORY UI LAYER */
+#victory-ui-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none; 
+    z-index: 9700; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+#victory-ui-layer.hidden { display: none; }
+
+.victory-message {
+    position: absolute;
+    bottom: 55%; 
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    font-family: 'Rubik Mono One', sans-serif; 
+    font-weight: 400;
+    text-transform: uppercase;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    opacity: 1; 
+}
+
+.victory-message.fading {
+    animation: ui-fade-out 0.5s ease-in forwards;
+}
+
+@keyframes ui-fade-out {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(1.1); }
+}
+
+.word-level-vic { 
+    color: #FFFFFF; 
+    font-size: 30px; 
+    opacity: 0; 
+}
+.word-cleared-vic { 
+    color: #9BFF6A; 
+    font-size: 48px; 
+    opacity: 0; 
+    text-shadow: 0 0 20px rgba(155, 255, 106, 0.4); 
+}
+
+.word-level-vic.active {
+    animation: stamp-slam 0.4s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+.word-cleared-vic.active {
+    animation: stamp-slam 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+    animation-delay: 0.25s;
+}
+
+.game-over-buttons.victory-set {
+    bottom: 25%; 
+    width: 100%;
+    justify-content: center;
+    z-index: 9800; 
+}
+
+.game-over-buttons.victory-set.active {
+    animation: buttons-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    animation-delay: 2.5s; 
+    pointer-events: auto;
+}
+
+@media (max-width: 600px) {
+    .failure-message, .victory-message {
+        flex-direction: column; 
+        gap: 0px !important; 
+        bottom: 52% !important; 
+    }
+    .word-level, .word-level-vic {
+        font-size: 20px !important; 
+        margin-bottom: 5px; 
+    }
+    .word-failed, .word-cleared-vic {
+        font-size: 42px !important; 
+        line-height: 1.1; 
+    }
+    .game-over-buttons {
+        gap: 15px !important; 
+    }
+    .action-btn {
+        width: 60px !important; 
+        height: 60px !important;
+    }
+    .action-btn svg {
+        width: 30px !important;
+        height: 30px !important;
+    }
+}
+
+/* ============================================
+   NEW: GAME OVER & NO SPACE ANIMATIONS
+   ============================================ */
+
+/* The Filling Block Visual */
+.visual-fill {
+    background: var(--block-color);
+    border-radius: 6px; /* Matches rad-block */
+    box-shadow: 
+        inset 3px 3px 0px 0px rgba(255,255,255,0.4),
+        inset -3px -3px 0px 0px rgba(0,0,0,0.2);
+    animation: fill-pop 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    position: relative;
+    z-index: 10;
+}
+
+@keyframes fill-pop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Dimmed Grid State */
+.state-dimmed {
+    filter: brightness(0.8) !important;
+    transition: filter 0.4s ease;
+}
+
+/* "No Space Left" Toast */
+#no-space-message {
+    width: 100%;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 900;
+    font-size: 28px;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    position: absolute;
+    bottom: 120px; 
+    left: 0;
+    z-index: 100;
+    background: rgba(26, 29, 36, 0.95);
+    border-radius: 12px;
+    animation: msg-slide-up 0.3s ease-out forwards;
+}
+
+@keyframes msg-slide-up {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+#no-space-message.hidden { display: none; }
+
+/* --- NEW: SCOREBOARD GEM IMPACT GLOW --- */
+.gem-icon.impact-glow {
+    animation: ui-gem-flash 0.4s ease-out forwards;
+}
+
+@keyframes ui-gem-flash {
+    0% { filter: brightness(1) drop-shadow(0 0 0 rgba(255,255,255,0)); transform: scale(1); }
+    30% { filter: brightness(2.5) drop-shadow(0 0 15px rgba(255,255,255,0.9)); transform: scale(1.2); }
+    100% { filter: brightness(1) drop-shadow(0 0 0 rgba(255,255,255,0)); transform: scale(1); }
+}
+
+/* ============================================
+   NEW: OBJECTIVE COMPLETE VISUALS (MORPH & GLOW)
+   ============================================ */
+
+/* 1. The Holy Glow (Permanent Aura on Gem Icon) */
+.gem-icon.holy-glow {
+    animation: holy-pulse 1.5s ease-in-out infinite alternate;
+    z-index: 25;
+}
+
+/* Gold Glow */
+.gem-icon.gem-gold.holy-glow {
+    filter: brightness(1.3) drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+    box-shadow: 0 0 20px 5px rgba(255, 215, 0, 0.4);
+    border-radius: 50%; /* Soft glow roundness */
+}
+
+/* Purple Glow */
+.gem-icon.gem-purple.holy-glow {
+    filter: brightness(1.3) drop-shadow(0 0 10px rgba(234, 128, 252, 0.8));
+    box-shadow: 0 0 20px 5px rgba(224, 64, 251, 0.4);
+    border-radius: 50%;
+}
+
+/* Red Glow (NEW) */
+.gem-icon.gem-red.holy-glow {
+    filter: brightness(1.3) drop-shadow(0 0 10px rgba(255, 23, 68, 0.8));
+    box-shadow: 0 0 20px 5px rgba(213, 0, 0, 0.4);
+    border-radius: 50%;
+}
+
+@keyframes holy-pulse {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.1); opacity: 1; filter: brightness(1.6) drop-shadow(0 0 15px currentColor); }
+}
+
+/* 2. Number Exit Animation (Spin & Shrink) */
+.score-exit {
+    animation: score-spin-out 0.4s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards;
+    transform-origin: center;
+    display: inline-block; /* Required for transform */
+}
+
+@keyframes score-spin-out {
+    0% { transform: scale(1) rotate(0deg); opacity: 1; }
+    60% { transform: scale(1.2) rotate(-20deg); opacity: 1; }
+    100% { transform: scale(0) rotate(360deg); opacity: 0; }
+}
+
+/* 3. The Neon Tick (Slams in) */
+.goal-tick-container {
+    width: 36px;
+    height: 36px;
+    position: absolute;
+    bottom: -5px; /* Adjust based on goal-item padding */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 30;
+}
+
+.goal-tick-svg {
+    width: 100%;
+    height: 100%;
+    fill: #00E676; /* Neon Green */
+    filter: drop-shadow(0 0 4px rgba(0, 230, 118, 0.6));
+    opacity: 0;
+    transform: scale(3);
+}
+
+.goal-tick-svg.tick-slam {
+    animation: tick-slam-anim 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes tick-slam-anim {
+    0% { transform: scale(3); opacity: 0; }
+    70% { transform: scale(0.9); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* 4. Impact Ripple (Behind the tick) */
+.tick-ripple {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: transparent;
+    border: 3px solid #00E676;
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tick-ripple.ripple-fire {
+    animation: ripple-boom 0.6s ease-out forwards;
+}
+
+@keyframes ripple-boom {
+    0% { width: 10px; height: 10px; opacity: 1; border-width: 4px; }
+    100% { width: 60px; height: 60px; opacity: 0; border-width: 0px; }
+}
+
+/* ============================================
+   LEVEL START SEQUENCE
+   ============================================ */
+
+#level-start-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 20000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+}
+
+#start-banner {
+    width: 100%; 
+    height: 180px; 
+    background: rgba(72, 52, 212, 0.95); 
+    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    transform-origin: center;
+    animation: strip-enter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.start-title {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 800;
+    color: #00FFFF;
+    font-size: 28px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+#start-gem-container {
+    display: flex;
+    gap: 40px;
+    align-items: center;
+    justify-content: center;
+}
+
+.socket-empty {
+    opacity: 0 !important;
+    transition: opacity 0.3s;
+}
+
+.start-gem-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+}
+
+.start-gem-wrapper span {
+    font-family: 'Kanit', sans-serif;
+    font-weight: 900;
+    font-size: 32px;
+    color: #FFFFFF;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    line-height: 1;
+}
+
+.start-gem-wrapper .gem-icon {
+    transform: scale(1.3);
+    margin-bottom: 5px;
+}
+
+@keyframes strip-enter {
+    0% { transform: scaleX(0); opacity: 0; }
+    100% { transform: scaleX(1); opacity: 1; }
+}
+
+.flying-gem-ghost {
+    position: fixed;
+    z-index: 26000;
+    pointer-events: none;
+    will-change: transform, top, left;
+    transition: all 0.6s cubic-bezier(0.5, 0, 0, 1); 
+}
+

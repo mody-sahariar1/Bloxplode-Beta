@@ -1,0 +1,28 @@
+{
+  "name": "adventure-gamefiles",
+  "version": "1.0.0",
+  "description": "",
+  "main": "global-settings.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mody-sahariar1/Bloxplode-Beta.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mody-sahariar1/Bloxplode-Beta/issues"
+  },
+  "homepage": "https://github.com/mody-sahariar1/Bloxplode-Beta#readme",
+  "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
+    "@capacitor-firebase/crashlytics": "^8.0.1",
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/cli": "^8.0.2",
+    "@capacitor/core": "^8.0.2"
+  }
+}
