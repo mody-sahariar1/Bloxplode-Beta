@@ -136,6 +136,7 @@ let tutorialStage = 0;
 // UPDATED: Check LocalStorage. If 'blox_tutorial_done' exists, skip tutorial.
 // If it is null/undefined, run tutorial.
 let isTutorialMode = !localStorage.getItem('blox_tutorial_done'); 
+let tutorialHandTimer = null; // TRACKS THE HAND SPAWN TIMER
 
 const TUTORIAL_LEVELS = [
     {
@@ -300,7 +301,8 @@ function setupTutorialLevel(stageIdx) {
     targetSlot.appendChild(piece);
 
     // 4. Summon Ghost Hand
-    setTimeout(() => spawnHand(targetSlot, data.piece, data.targetRow, data.targetCol), 500);
+    if (tutorialHandTimer) clearTimeout(tutorialHandTimer); 
+    tutorialHandTimer = setTimeout(() => spawnHand(targetSlot, data.piece, data.targetRow, data.targetCol), 500);
 }
 
 // --- TEXT HELPERS ---
@@ -657,6 +659,12 @@ function canPlace(shapeData, row, col) {
 let activeDrag = null;
 
 window.addEventListener('pointerdown', e => {
+    // KILL TIMER IMMEDIATELY ON INTERACTION
+    if (tutorialHandTimer) {
+        clearTimeout(tutorialHandTimer);
+        tutorialHandTimer = null;
+    }
+
     if (isGameLocked) return; 
     
     // HIDE HAND TEMPORARILY ON INTERACTION
