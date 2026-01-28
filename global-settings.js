@@ -249,12 +249,18 @@
 
     // --- 7. NAVIGATION BUTTONS ---
     function hookLevelButtons() {
-        const adventureMapURL = '../index.html?returnTo=adventure';
-        
+        // [UPDATED] Smart Navigation Logic
         const levelHomeButtons = document.querySelectorAll('#btn-home, #vic-btn-home');
         levelHomeButtons.forEach(btn => {
             replaceButtonWithSound(btn, () => {
-                navigateWithSound(adventureMapURL);
+                const path = window.location.pathname.toLowerCase();
+                const isClassic = path.includes('classic');
+                // If Classic: Go to Root (Main Menu)
+                // If Level: Go to Adventure Map
+                const targetURL = isClassic ? '../index.html' : '../index.html?returnTo=adventure';
+                
+                if(window.GameAnalytics) window.GameAnalytics.log('home_click', { mode: isClassic ? 'classic' : 'adventure' });
+                navigateWithSound(targetURL);
             });
         });
 
@@ -273,7 +279,7 @@
                 const path = window.location.pathname;
                 const match = path.match(/level%20(\d+)|level\s*(\d+)/i);
                 
-                let target = adventureMapURL;
+                let target = '../index.html?returnTo=adventure';
                 if (match) {
                     const currentNum = parseInt(match[1] || match[2]);
                     const nextNum = currentNum + 1;

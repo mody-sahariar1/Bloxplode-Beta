@@ -982,16 +982,17 @@ body:has(.combo-popup[style*="00ffcc"]) {
 }
 
 /* =====================================================
-   NEW RECORD OVERLAY (PURPLE THEME)
+   NEW RECORD OVERLAY (FLOATING CARD SYSTEM)
    ===================================================== */
 
+/* 1. THE BACKDROP (Full Screen, Fixed, PURPLE) */
 #new-record-overlay {
-    position: absolute;
+    position: fixed; /* BREAKS OUT OF GAME COLUMN */
     top: 0; left: 0;
     width: 100%; height: 100%;
-    z-index: 6000; /* Higher than standard Game Over */
+    z-index: 6000;
     
-    /* Deep Royal Purple Gradient */
+    /* THE FULL SCREEN PURPLE GRADIENT */
     background: linear-gradient(180deg, #8E2DE2 0%, #4A00E0 100%);
     
     display: none;
@@ -1008,21 +1009,30 @@ body:has(.combo-popup[style*="00ffcc"]) {
     animation-delay: 0.55s; 
 }
 
-/* --- Content Wrapper --- */
+/* 2. THE CONTENT CONTAINER (Transparent, Centered) */
 .nr-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
     z-index: 10;
+    
+    position: relative;
+    background: transparent; /* No Card Background */
+    width: 100%;
+    max-width: none; /* Allow full width if needed, but centering handles it */
+    padding: 0;
+    border-radius: 0;
+    
+    box-shadow: none;
+    border: none;
 }
 
 /* --- 1. The Crown (Pop & Float) --- */
 .nr-crown-wrapper {
     width: 140px;
     height: 100px;
-    margin-bottom: 20px; /* Slight adjustment */
+    margin-bottom: 20px; 
     opacity: 0; 
 }
 
@@ -1049,18 +1059,17 @@ body:has(.combo-popup[style*="00ffcc"]) {
     50% { transform: translateY(-10px); }
 }
 
-/* --- 2. "Best Score!" Title (MATCHING STANDARD GO) --- */
+/* --- 2. "Best Score!" Title --- */
 .nr-title-container {
     overflow: hidden; 
     margin-bottom: 30px;
 }
 
 .nr-title {
-    /* MATCHING STANDARD GAME OVER TITLE (#gameOverTitle) */
     font-family: 'Verdana', 'Segoe UI', sans-serif;
     font-size: 2.5rem; 
     font-weight: 800; 
-    color: #FFD700; /* Gold to stand out on purple */
+    color: #FFD700; 
     text-transform: uppercase;
     letter-spacing: 2px;
     text-shadow: 0 4px 0 rgba(0,0,0,0.2);
@@ -1081,9 +1090,8 @@ body:has(.combo-popup[style*="00ffcc"]) {
     100% { opacity: 1; transform: translateX(0); }
 }
 
-/* --- 3. Score Values (MATCHING STANDARD GO) --- */
+/* --- 3. Score Values --- */
 .nr-score-label {
-    /* MATCHING STANDARD LABEL (.go-label) */
     font-family: 'Verdana', sans-serif;
     font-size: 1rem;
     font-weight: 600; 
@@ -1096,7 +1104,6 @@ body:has(.combo-popup[style*="00ffcc"]) {
 }
 
 #nr-score-val {
-    /* MATCHING STANDARD SCORE (#go-score-val) */
     font-family: 'Verdana', sans-serif;
     font-size: 3.5rem; 
     font-weight: 700; 

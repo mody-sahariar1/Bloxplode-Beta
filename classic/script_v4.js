@@ -994,7 +994,6 @@ function runGameOverSequence() {
         if (score > initialSessionBest) {
             const nrOverlay = document.getElementById("new-record-overlay");
             const nrScoreDisplay = document.getElementById("nr-score-val");
-            const nrBtn = document.getElementById("nr-restart-btn");
             
             // --- DELAYED SOUND (Syncs with CSS 0.55s Animation) ---
             setTimeout(() => {
@@ -1004,15 +1003,18 @@ function runGameOverSequence() {
             nrOverlay.classList.remove("hidden"); 
             fireConfetti(); 
             nrScoreDisplay.textContent = "0";
-            nrBtn.classList.remove('reveal');
+            
+            // REMOVE REVEAL FROM ALL ACTION BUTTONS
+            const allBtns = document.querySelectorAll('.action-btn');
+            allBtns.forEach(btn => btn.classList.remove('reveal'));
+            
             setTimeout(() => {
-                animateValue(nrScoreDisplay, 0, score, 1500, nrBtn);
+                animateValue(nrScoreDisplay, 0, score, 1500, 'reveal-buttons');
             }, 1200);
         } else {
             const goOverlay = document.getElementById("game-over-overlay");
             const goScoreDisplay = document.getElementById("go-score-val");
             const goBestDisplay = document.getElementById("go-best-val");
-            const goBtn = document.getElementById("restart-overlay-btn");
             
             // --- DELAYED SOUND (Syncs with CSS 0.55s Animation) ---
             setTimeout(() => {
@@ -1023,15 +1025,19 @@ function runGameOverSequence() {
             
             goBestDisplay.textContent = bestScore;
             goScoreDisplay.textContent = "0";
-            goBtn.classList.remove('reveal');
+            
+            // REMOVE REVEAL FROM ALL ACTION BUTTONS
+            const allBtns = document.querySelectorAll('.action-btn');
+            allBtns.forEach(btn => btn.classList.remove('reveal'));
+            
             setTimeout(() => {
-                animateValue(goScoreDisplay, 0, score, 1200, goBtn);
+                animateValue(goScoreDisplay, 0, score, 1200, 'reveal-buttons');
             }, 300); 
         }
     }, 800);
 }
 
-function animateValue(obj, start, end, duration, btnToReveal) {
+function animateValue(obj, start, end, duration, mode) {
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!start) start = 0;
@@ -1041,7 +1047,14 @@ function animateValue(obj, start, end, duration, btnToReveal) {
         if (progress < 1) {
             window.requestAnimationFrame(step);
         } else {
-            if(btnToReveal) btnToReveal.classList.add('reveal');
+            // TRIGGER REVEAL FOR ALL BUTTONS IN ACTIVE OVERLAY
+            if(mode === 'reveal-buttons') {
+                const activeOverlay = document.querySelector('#game-over-overlay:not(.hidden), #new-record-overlay:not(.hidden)');
+                if(activeOverlay) {
+                    const btns = activeOverlay.querySelectorAll('.action-btn');
+                    btns.forEach(b => b.classList.add('reveal'));
+                }
+            }
         }
     };
     window.requestAnimationFrame(step);
@@ -1065,8 +1078,8 @@ function fullReset() {
     document.getElementById("tray").style.opacity = "1";
     document.getElementById('grid-wrapper').classList.remove('state-dimmed');
     
-    document.getElementById("restart-overlay-btn").classList.remove('reveal');
-    document.getElementById("nr-restart-btn").classList.remove('reveal');
+    // HIDE ALL ACTION BUTTONS
+    document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('reveal'));
     
     hasBrokenRecord = false;
     const nbOverlay = document.getElementById('new-best-overlay');
@@ -1081,5 +1094,5 @@ function fullReset() {
     initialSessionBest = bestScore; 
     init(); 
 }
-document.getElementById("restart-overlay-btn").onclick = fullReset;
+
 init();
