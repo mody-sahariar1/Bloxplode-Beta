@@ -39,7 +39,7 @@
             import { getAnalytics, logEvent } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
 
             const firebaseConfig = {
-                apiKey: "AIzaSyDY259wW8A8qAv3yHXYjXdsXQ6hh1t54iA",
+                apiKey: FIREBASE_API_KEY,
                 authDomain: "bloxplode.firebaseapp.com",
                 projectId: "bloxplode",
                 storageBucket: "bloxplode.firebasestorage.app",
