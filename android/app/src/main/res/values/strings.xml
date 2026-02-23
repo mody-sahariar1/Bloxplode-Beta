@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Bloxplode</string>
-    <string name="title_activity_main">Bloxplode</string>
-    <string name="package_name">com.stratos.bloxplode</string>
-    <string name="custom_url_scheme">com.stratos.bloxplode</string>
-</resources>

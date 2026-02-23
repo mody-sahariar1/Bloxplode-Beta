@@ -68,27 +68,26 @@ const SoundSystem = {
 
     async loadSounds() {
         const fileNames = {
-            'gem_pop': '../sounds/sharp_pop.wav',       // Added back (Required)
-            'gem_collect': '../sounds/gem_collect.wav', // Added back (Required)
-            'grab': '../sounds/piece_grab.wav',
-            'place': '../sounds/piece_place.wav',
-            'new_best': '../sounds/best_score.wav',     // Added back (Required)
-            'heartbeat': '../sounds/heartbeat.wav',
-            'game_over': '../sounds/score_banner.wav',
-            'bgm': '../sounds/background.wav',
-            'gameover_best': '../sounds/gameover_bestscore.wav',
-            'instant_win': '../sounds/instant_win.wav',
-            'winning_swoosh': '../sounds/winning_swoosh.wav',
-            'victory_chime': '../sounds/victory_chime.wav',
-            'epic_victory': '../sounds/epic_victory.wav',
-            'combo_2': '../sounds/nice.wav',
-            'combo_5': '../sounds/sweet.wav',
-            'combo_8': '../sounds/great.wav',
-            'combo_10': '../sounds/amazing.wav',
-            'combo_13': '../sounds/unreal.wav',
-            'combo_15': '../sounds/insane.wav',
-            'combo_18': '../sounds/legendary.wav',
-            'combo_20': '../sounds/godlike.wav'
+            'gem_pop': 'sounds/sharp_pop.wav',       
+            'gem_collect': 'sounds/gem_collect.wav', 
+            'grab': 'sounds/piece_grab.wav',
+            'place': 'sounds/piece_place.wav',
+            'heartbeat': 'sounds/heartbeat.wav',
+            'game_over': 'sounds/score_banner.wav', 
+            'bgm': 'sounds/background.wav',
+            'gameover_best': 'sounds/gameover_bestscore.wav', 
+            'instant_win': 'sounds/instant_win.wav',       
+            'winning_swoosh': 'sounds/winning_swoosh.wav', 
+            'victory_chime': 'sounds/victory_chime.wav',   
+            'epic_victory': 'sounds/epic_victory.wav',
+            'combo_2': 'sounds/nice.wav',
+            'combo_5': 'sounds/sweet.wav',
+            'combo_8': 'sounds/great.wav',
+            'combo_10': 'sounds/amazing.wav',
+            'combo_13': 'sounds/unreal.wav',
+            'combo_15': 'sounds/insane.wav',
+            'combo_18': 'sounds/legendary.wav',
+            'combo_20': 'sounds/godlike.wav'
         };
 
         const promises = Object.entries(fileNames).map(async ([name, url]) => {
@@ -245,10 +244,12 @@ const SHAPE_TIERS_EXPANDED = {
 let recentShapes = []; 
 
 function resizeGame() {
-    // 🛑 HANDLED GLOBALLY NOW
-    // We leave this empty so the code doesn't crash, 
-    // but we let global-settings.js handle the actual sizing.
-    if (!window.gameScale) window.gameScale = 1;
+    const gameCol = document.querySelector('.game-column');
+    if (!gameCol) return;
+    const viewportWidth = window.innerWidth;
+    const scale = Math.min(viewportWidth / 404, 1);
+    window.gameScale = scale;
+    gameCol.style.transform = `scale(${scale})`;
 }
 
 function updateGoalUI() {
@@ -726,11 +727,7 @@ window.addEventListener('pointerup', e => {
             
             // INTEGRATION: Call No Space Sequence
             if (checkGameOver()) {
-                if (window.GlobalRescue) {
-                    window.GlobalRescue.tryRescue(runGameOverSequence);
-                } else {
-                    runGameOverSequence(); // Fallback if global system missing
-                }
+                runGameOverSequence();
             }
         });
     } else { 
@@ -887,7 +884,7 @@ if (retryBtn) retryBtn.onclick = fullReset;
 const nextBtn = document.getElementById("vic-btn-next");
 if (nextBtn) {
     // WINNER: Go to Level 5
-    nextBtn.onclick = () => window.location.href = "../bloxplode%20adventure%20level%205/index.html";
+    nextBtn.onclick = () => window.location.href = "../bloxplode adventure level 5/index.html";
 }
 
 // 1. Piece Placement Visuals

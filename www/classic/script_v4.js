@@ -32,27 +32,25 @@ const SoundSystem = {
 
     async loadSounds() {
         const fileNames = {
-            'gem_pop': '../sounds/sharp_pop.wav',       
-            'gem_collect': '../sounds/gem_collect.wav', 
-            'grab': '../sounds/piece_grab.wav',
-            'place': '../sounds/piece_place.wav',
-            'new_best': '../sounds/best_score.wav',
-            'heartbeat': '../sounds/heartbeat.wav',
-            'game_over': '../sounds/score_banner.wav', 
-            'bgm': '../sounds/background.wav',
-            'gameover_best': '../sounds/gameover_bestscore.wav', 
-            'instant_win': '../sounds/instant_win.wav',       
-            'winning_swoosh': '../sounds/winning_swoosh.wav', 
-            'victory_chime': '../sounds/victory_chime.wav',   
-            'epic_victory': '../sounds/epic_victory.wav',
-            'combo_2': '../sounds/nice.wav',
-            'combo_5': '../sounds/sweet.wav',
-            'combo_8': '../sounds/great.wav',
-            'combo_10': '../sounds/amazing.wav',
-            'combo_13': '../sounds/unreal.wav',
-            'combo_15': '../sounds/insane.wav',
-            'combo_18': '../sounds/legendary.wav',
-            'combo_20': '../sounds/godlike.wav'
+            'grab': 'sounds/piece_grab.wav',
+            'place': 'sounds/piece_place.wav',
+            'new_best': 'sounds/best_score.wav',
+            'heartbeat': 'sounds/heartbeat.wav',
+            'game_over': 'sounds/score_banner.wav', 
+            'bgm': 'sounds/background.wav',
+            'gameover_best': 'sounds/gameover_bestscore.wav', 
+            'instant_win': 'sounds/instant_win.wav',       
+            'winning_swoosh': 'sounds/winning_swoosh.wav', 
+            'victory_chime': 'sounds/victory_chime.wav',   
+            'epic_victory': 'sounds/epic_victory.wav',
+            'combo_2': 'sounds/nice.wav',
+            'combo_5': 'sounds/sweet.wav',
+            'combo_8': 'sounds/great.wav',
+            'combo_10': 'sounds/amazing.wav',
+            'combo_13': 'sounds/unreal.wav',
+            'combo_15': 'sounds/insane.wav',
+            'combo_18': 'sounds/legendary.wav',
+            'combo_20': 'sounds/godlike.wav'
         };
 
         const loadPromises = Object.entries(fileNames).map(async ([name, url]) => {
@@ -139,9 +137,6 @@ let tutorialStage = 0;
 // If it is null/undefined, run tutorial.
 let isTutorialMode = !localStorage.getItem('blox_tutorial_done'); 
 let tutorialHandTimer = null; // TRACKS THE HAND SPAWN TIMER
-
-// --- NEW: TIME TRACKING FOR RESCUE ELIGIBILITY ---
-let gameStartTime = Date.now();
 
 const TUTORIAL_LEVELS = [
     {
@@ -256,23 +251,15 @@ const Boss = {
 };
 
 let recentShapes = []; 
-// --- FIX: DISABLED LOCAL RESIZING ---
-// window.gameScale is now managed EXCLUSIVELY by global-settings.js
-// We default to 1 here just for safety if global-settings hasn't run yet.
-if (!window.gameScale) window.gameScale = 1;
+window.gameScale = 1;
 
 function resizeGame() {
-    // 🛑 DEPRECATED: This function used to conflict with global-settings.js
-    // We now let the Global Janitor handle scaling.
-    // This function body is intentionally left empty or minimal to prevent double-scaling.
-    
-    /* ORIGINAL CODE REMOVED TO PREVENT "TINY GRID" BUG
-       const gameCol = document.querySelector('.game-column');
-       const viewportWidth = window.innerWidth;
-       const scale = Math.min(viewportWidth / 404, 1);
-       window.gameScale = scale;
-       gameCol.style.transform = `scale(${scale})`; 
-    */
+    const gameCol = document.querySelector('.game-column');
+    if (!gameCol) return;
+    const viewportWidth = window.innerWidth;
+    const scale = Math.min(viewportWidth / 404, 1);
+    window.gameScale = scale;
+    gameCol.style.transform = `scale(${scale})`;
 }
 
 // --- TUTORIAL ENGINE ---
@@ -428,9 +415,9 @@ function restoreTutorialHand() {
 // --- MAIN INIT ---
 
 function init() {
-    // resizeGame(); // DISABLED - Handled by global-settings.js now
-    // window.addEventListener('resize', resizeGame); // DISABLED
-    
+    resizeGame();
+    window.addEventListener('resize', resizeGame);
+    window.addEventListener('orientationchange', resizeGame);
     SoundSystem.stopHeartbeat(); 
 
     grid.innerHTML = ""; cells = []; gridState.fill(0);
@@ -458,9 +445,6 @@ function init() {
     nbOverlay.classList.add('hidden');
     nbOverlay.classList.remove('fade-out-best');
     
-    // --- NEW: START CLOCK ---
-    gameStartTime = Date.now();
-
     // STARTUP LOGIC: CHECK IF TUTORIAL IS NEEDED
     if (isTutorialMode) {
         document.querySelector('.top-bar').style.opacity = '0';
@@ -696,7 +680,6 @@ window.addEventListener('pointerdown', e => {
     
     const clone = piece.cloneNode(true);
     clone.classList.add("dragging");
-    // USE GLOBAL SCALE FOR CLONE SIZE
     clone.style.transform = `scale(${window.gameScale})`;
     clone.style.transformOrigin = "center"; 
     
@@ -774,12 +757,8 @@ window.addEventListener('pointermove', e => {
     activeDrag.clone.style.top = visualTop + "px";
 
     const gRect = grid.getBoundingClientRect();
-    
-    // --- KEY FIX: Use current visual scale for coordinate mapping ---
-    // This ensures ghost aligns perfectly even if scaling changes dynamically
-    const currentScale = window.gameScale || 1;
-    const col = Math.round((visualLeft - gRect.left) / (48 * currentScale));
-    const row = Math.round((visualTop - gRect.top) / (48 * currentScale));
+    const col = Math.round((visualLeft - gRect.left) / (48 * window.gameScale));
+    const row = Math.round((visualTop - gRect.top) / (48 * window.gameScale));
 
     if (activeDrag.lastRow === row && activeDrag.lastCol === col) return;
     activeDrag.lastRow = row;
@@ -816,7 +795,6 @@ window.addEventListener('pointermove', e => {
     }
 });
 
-// --- UPDATED POINTERUP LISTENER (INTERCEPTOR FOR RESCUE + ELIGIBILITY) ---
 window.addEventListener('pointerup', e => {
     if (!activeDrag || activeDrag.id !== e.pointerId) return;
 
@@ -842,9 +820,8 @@ window.addEventListener('pointerup', e => {
     const visualTop = activeDrag.cloneStartY + (deltaY * factorY);
 
     const gRect = grid.getBoundingClientRect();
-    const currentScale = window.gameScale || 1;
-    const col = Math.round((visualLeft - gRect.left) / (48 * currentScale));
-    const row = Math.round((visualTop - gRect.top) / (48 * currentScale));
+    const col = Math.round((visualLeft - gRect.left) / (48 * window.gameScale));
+    const row = Math.round((visualTop - gRect.top) / (48 * window.gameScale));
 
     if (canPlace(activeDrag.shape.data, row, col)) {
         
@@ -899,7 +876,7 @@ window.addEventListener('pointerup', e => {
                         isTutorialMode = false;
                         isGameLocked = false;
                         localStorage.setItem('blox_tutorial_done', 'true');
-                        hideTutorialText(); 
+                        hideTutorialText(); // Ensure text is gone
                         
                         // Fade HUD In
                         const topBar = document.querySelector('.top-bar');
@@ -918,16 +895,8 @@ window.addEventListener('pointerup', e => {
                 }, 1200); 
             } else {
                 if (document.querySelectorAll(".tray-slot .piece").length === 0) spawnTrayPieces();
-                
-                // --- NEW INTERCEPTOR LOGIC (DELEGATED TO GLOBAL RESCUE) ---
                 if (checkGameOver()) {
-                    if (window.GlobalRescue) {
-                        // Use the GLOBAL system from global-settings.js
-                        window.GlobalRescue.tryRescue(runGameOverSequence);
-                    } else {
-                        // Fallback if GlobalRescue isn't loaded
-                        runGameOverSequence();
-                    }
+                    runGameOverSequence();
                 }
             }
         });
@@ -1034,6 +1003,7 @@ function runGameOverSequence() {
             const nrOverlay = document.getElementById("new-record-overlay");
             const nrScoreDisplay = document.getElementById("nr-score-val");
             
+            // --- DELAYED SOUND (Syncs with CSS 0.55s Animation) ---
             setTimeout(() => {
                 SoundSystem.play('gameover_best');
             }, 550);
@@ -1042,6 +1012,7 @@ function runGameOverSequence() {
             fireConfetti(); 
             nrScoreDisplay.textContent = "0";
             
+            // REMOVE REVEAL FROM ALL ACTION BUTTONS
             const allBtns = document.querySelectorAll('.action-btn');
             allBtns.forEach(btn => btn.classList.remove('reveal'));
             
@@ -1053,6 +1024,7 @@ function runGameOverSequence() {
             const goScoreDisplay = document.getElementById("go-score-val");
             const goBestDisplay = document.getElementById("go-best-val");
             
+            // --- DELAYED SOUND (Syncs with CSS 0.55s Animation) ---
             setTimeout(() => {
                 SoundSystem.play('game_over'); 
             }, 550);
@@ -1062,6 +1034,7 @@ function runGameOverSequence() {
             goBestDisplay.textContent = bestScore;
             goScoreDisplay.textContent = "0";
             
+            // REMOVE REVEAL FROM ALL ACTION BUTTONS
             const allBtns = document.querySelectorAll('.action-btn');
             allBtns.forEach(btn => btn.classList.remove('reveal'));
             
@@ -1082,6 +1055,7 @@ function animateValue(obj, start, end, duration, mode) {
         if (progress < 1) {
             window.requestAnimationFrame(step);
         } else {
+            // TRIGGER REVEAL FOR ALL BUTTONS IN ACTIVE OVERLAY
             if(mode === 'reveal-buttons') {
                 const activeOverlay = document.querySelector('#game-over-overlay:not(.hidden), #new-record-overlay:not(.hidden)');
                 if(activeOverlay) {
@@ -1119,13 +1093,6 @@ function fullReset() {
     const nbOverlay = document.getElementById('new-best-overlay');
     nbOverlay.classList.add('hidden');
     nbOverlay.classList.remove('fade-out-best');
-    
-    // --- RESET GLOBAL RESCUE FLAG (Crucial) ---
-    if (window.GlobalRescue) {
-        window.GlobalRescue.hasUsedRescue = false;
-        window.GlobalRescue.levelStartTime = Date.now();
-    }
-    document.getElementById('rescue-overlay').classList.add('hidden');
 
     cells.forEach(cell => {
         cell.classList.remove('visual-fill');
