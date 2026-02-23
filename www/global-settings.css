@@ -3,11 +3,55 @@
    Theme: Blue/Purple Glossy (Stratos Aesthetic)
    ========================================================= */
 
+/* --- 0. NEW: GLOBAL LAYOUT OVERRIDES (THE "BLOCK BLAST" CENTER FIX) --- */
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0 !important; /* OVERRIDE local level padding */
+    overflow: hidden;      /* No scrolling allowed */
+    
+    /* Flexbox Centering */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* Vertical Center */
+    
+    background: linear-gradient(180deg, #566CD5 0%, #3E50A4 100%);
+    font-family: 'Kanit', sans-serif;
+}
+
+/* The Ghost Container (Created by JS) */
+#main-game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+    width: 100%;
+    max-width: 420px; /* Constrain width on tablets */
+    position: relative;
+    z-index: 10;
+}
+
+/* Force Goal Bar to behave inside the container */
+#goal-bar {
+    position: relative !important; /* Override absolute positioning */
+    top: auto !important;
+    margin-bottom: 2vh; /* Responsive gap */
+    width: 100%;
+    justify-content: center;
+    padding: 0;
+    left: auto !important;
+    transform: none !important;
+}
+
 /* --- 1. THE GEAR ICON --- */
 #universal-gear-btn {
     position: fixed;
-    top: 5px; 
-    right: 15px;
+    /* Updated to respect safe area (Notch) since we removed body padding */
+    top: max(40px, env(safe-area-inset-top)); 
+    right: 25px;
     width: 35px;
     height: 35px;
     background: transparent;
@@ -24,8 +68,8 @@
 }
 
 #universal-gear-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 25px;
+    height: 25px;
     fill: #ffffff;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
@@ -371,6 +415,229 @@ input:checked + .us-slider:before {
         font-size: 42px !important;
         line-height: 1.1 !important;
     }
+}
 
+/* ============================================
+   RESCUE SYSTEM GLOBAL STYLES (NEW)
+   ============================================ */
 
+/* OVERLAY (Glass & Blue) */
+#rescue-overlay {
+    position: fixed; /* Fixed so it covers everything globally */
+    inset: 0;
+    background: rgba(10, 15, 30, 0.6); 
+    backdrop-filter: blur(12px); 
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 200000; /* Extremely High Z-Index */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0; 
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+#rescue-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+#rescue-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+    display: flex !important; /* Override 'hidden' generic class */
+}
+
+/* CONTENT CONTAINER */
+.rescue-glass-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: scale(0.9);
+    animation: rescue-float-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes rescue-float-in {
+    to { transform: scale(1); }
+}
+
+/* HEADER TEXT */
+.rescue-header {
+    font-family: 'Kanit', sans-serif;
+    font-size: 36px;
+    font-weight: 900;
+    color: #FFFFFF;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    margin-bottom: 20px;
+}
+
+/* CIRCULAR TIMER */
+.rescue-timer-circle {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 15px;
+}
+
+.rescue-timer-circle svg {
+    width: 100%; height: 100%;
+    transform: rotate(-90deg);
+}
+
+.timer-bg {
+    fill: none;
+    stroke: rgba(255,255,255,0.1);
+    stroke-width: 8;
+}
+
+.timer-progress {
+    fill: none;
+    stroke: #2979FF; 
+    stroke-width: 8;
+    stroke-dasharray: 283; /* 2 * PI * 45 */
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear;
+    filter: drop-shadow(0 0 8px rgba(41, 121, 255, 0.6));
+}
+
+.timer-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Rubik Mono One', sans-serif;
+    font-size: 40px;
+    color: #00E5FF;
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+.rescue-info {
+    font-family: 'Nunito', sans-serif;
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 25px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* BLUE BUTTON */
+.rescue-btn-blue {
+    background: linear-gradient(180deg, #448AFF 0%, #2962FF 100%);
+    border: none;
+    border-radius: 50px;
+    padding: 12px 50px;
+    font-family: 'Kanit', sans-serif;
+    font-size: 22px;
+    color: #FFFFFF;
+    font-weight: 900;
+    box-shadow: 
+        0 6px 0 #0D47A1, 
+        0 15px 25px rgba(41, 98, 255, 0.4),
+        inset 0 2px 0 rgba(255,255,255,0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center; gap: 10px;
+    transition: transform 0.1s;
+    position: relative;
+    overflow: hidden;
+}
+
+.rescue-btn-blue::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transform: skewX(-20deg);
+    animation: blue-shine 3s infinite;
+}
+
+@keyframes blue-shine {
+    0%, 50% { left: -100%; }
+    60% { left: 200%; }
+    100% { left: 200%; }
+}
+
+.rescue-btn-blue:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 #0D47A1;
+}
+
+/* SKIP BUTTON */
+#btn-rescue-skip {
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    font-weight: 800;
+    margin-top: 20px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: color 0.2s, transform 0.1s;
+}
+#btn-rescue-skip:hover { color: white; transform: scale(1.05); }
+
+/* --- EXPLOSION FX (THE IMPACT) --- */
+
+/* 1. White Flash */
+.flash-white {
+    background-color: #FFFFFF !important;
+    box-shadow: 0 0 15px #FFFFFF !important;
+    transform: scale(1.1) !important;
+    z-index: 100 !important;
+    transition: all 0.1s;
+    animation: vibrate 0.1s infinite;
+}
+
+@keyframes vibrate {
+    0% { transform: translate(0,0) scale(1.1); }
+    25% { transform: translate(-1px, 1px) scale(1.1); }
+    50% { transform: translate(1px, -1px) scale(1.1); }
+    75% { transform: translate(-1px, -1px) scale(1.1); }
+    100% { transform: translate(0,0) scale(1.1); }
+}
+
+/* 2. Shockwave Ring */
+.fx-shockwave {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 5px solid #00E676; 
+    box-shadow: 0 0 20px #00E676;
+    opacity: 1;
+    z-index: 50;
+    pointer-events: none;
+    animation: shockwave-expand 0.5s ease-out forwards;
+}
+
+@keyframes shockwave-expand {
+    0% { width: 10px; height: 10px; border-width: 20px; opacity: 1; }
+    100% { width: 500px; height: 500px; border-width: 0px; opacity: 0; }
+}
+
+/* 3. Debris Particles */
+.fx-shard {
+    position: absolute;
+    width: 8px; height: 8px;
+    background: #00E676;
+    border-radius: 2px;
+    z-index: 60;
+    pointer-events: none;
+    box-shadow: 0 0 5px #00E676;
+}
+
+/* --- 4. START SEQUENCE LOCKED CELLS (NEW) --- */
+.start-locked {
+    /* Ensures no "pop-in" animation occurs on load */
+    animation: none !important;
+    /* Ensures the block is fully opaque and visible instantly */
+    opacity: 1 !important;
+    transform: scale(1) !important;
+    /* Match occupied block style */
+    border-radius: 6px;
+    box-shadow: inset 3px 3px 0px 0px rgba(255,255,255,0.4), inset -3px -3px 0px 0px rgba(0,0,0,0.2);
+    z-index: 20 !important; /* Above normal grid cells */
 }
